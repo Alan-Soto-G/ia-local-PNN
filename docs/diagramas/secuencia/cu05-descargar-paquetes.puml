@@ -1,0 +1,86 @@
+@startuml cu05
+title ESC-04: CU-05 Descargar modelos y paquetes de conocimiento (EAC-03; ADR-007, RT-05)
+skinparam backgroundColor #1E3B2F
+skinparam defaultFontName Arial
+skinparam defaultFontColor white
+skinparam titleFontColor white
+skinparam shadowing false
+<style>
+participant {
+  Padding 25
+}
+</style>
+skinparam BoxPadding 10
+skinparam wrapWidth 230
+skinparam maxMessageSize 230
+skinparam responseMessageBelowArrow true
+skinparam sequenceMessageAlign left
+skinparam NoteTextAlignment left
+skinparam SequenceGroupBodyBackgroundColor transparent
+skinparam ArrowColor white
+skinparam ArrowFontColor white
+skinparam sequence {
+  LifeLineBorderColor white
+  LifeLineBackgroundColor #548235
+  ParticipantBackgroundColor #548235
+  ParticipantBorderColor white
+  ParticipantFontColor white
+  ActorBackgroundColor #548235
+  ActorBorderColor white
+  ActorFontColor white
+  GroupBackgroundColor #2E5E4A
+  GroupBorderColor white
+  GroupFontColor white
+  BoxBackgroundColor #2E5E4A
+}
+skinparam note {
+  BackgroundColor #FFF2CC
+  BorderColor #C00000
+  FontColor #C00000
+}
+
+actor "Guía" as U
+participant "Paquetes\n(pantalla)" as UI
+participant "Módulo Paquetes" as P
+participant "Estado del\ndispositivo" as D
+participant "Backend de\nconocimiento" as B
+participant "Hugging Face Hub" as HF
+participant "Archivos locales" as F
+participant "Base local" as DB
+
+U -> UI : abre Paquetes (primera vez después de instalar)
+UI -> P : listar paquetes
+P -> B : GET manifest (HTTPS)
+alt sin conexión
+  P -> DB : último manifest guardado
+else con conexión
+  B --> P : manifest: modelos, versiones, url, tamaño, sha256, RAM mínima
+  P -> DB : guarda el manifest en paquete_modelo
+end
+P -> D : RAM total y espacio libre
+P --> UI : paquetes recomendados para este equipo (ADR-009)
+U -> UI : descargar "Asistente estándar"
+P -> D : ¿red Wi-Fi?
+break red celular o sin espacio suficiente
+  P --> UI : "conéctate a Wi-Fi" o "libera N GB"
+end
+loop por cada archivo del paquete
+  P -> HF : GET con rango de bytes desde bytes_descargados
+  HF --> F : bytes
+  P -> DB : actualiza bytes_descargados
+  opt se corta la red o se cierra la app
+    P -> DB : estado "pausado"
+    note right : al volver, se reanuda desde bytes_descargados
+  end
+  P -> F : calcula sha256
+  alt el hash no coincide
+    P -> F : borra el archivo
+    P -> DB : estado "corrupto" y luego "disponible"
+    P --> UI : "descarga dañada, se reintentará"
+  else el hash coincide
+    P -> DB : estado "listo"
+  end
+end
+P --> UI : paquete listo para usar sin conexión
+note across : 100% de los modelos en uso verificados con sha256; la descarga se retoma sin empezar de cero: cumple EAC-03
+@enduml

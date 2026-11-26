@@ -1,0 +1,83 @@
+@startuml fisica
+title Vista física: despliegue en el teléfono del guía (RT-04, ADR-011)
+
+skinparam backgroundColor #1E3B2F
+skinparam defaultFontName Arial
+skinparam defaultFontColor white
+skinparam titleFontColor white
+skinparam shadowing false
+skinparam linetype ortho
+skinparam nodesep 80
+skinparam ranksep 80
+skinparam ArrowColor white
+skinparam ArrowFontColor white
+skinparam ArrowFontSize 11
+skinparam node {
+  BackgroundColor #24493A
+  BorderColor #A9D18E
+  FontColor white
+}
+skinparam component {
+  BackgroundColor #2E5E4A
+  BorderColor white
+  FontColor white
+}
+skinparam database {
+  BackgroundColor #2E5E4A
+  BorderColor white
+  FontColor white
+}
+skinparam folder {
+  BackgroundColor #2E5E4A
+  BorderColor white
+  FontColor white
+}
+skinparam cloud {
+  BackgroundColor #7F7F7F
+  BorderColor white
+  FontColor white
+}
+
+node "Teléfono Android del guía\n<<Android 11+, ARM64, 6 GB RAM de referencia>>" as tel {
+
+  node "Proceso de la app\n<<APK generado con EAS Build>>" as proc {
+    component "App móvil\n[Hermes, JavaScript]" as app
+    component "Motor de inferencia\n[llama.rn, CPU / GPU Vulkan u OpenCL]" as llm
+    component "Transcriptor\n[whisper.rn]\nsolo mientras transcribe" as stt
+    component "Codificador de imagen\n[ONNX Runtime, CPU / NNAPI]" as img
+  }
+
+  node "Almacenamiento interno de la app\n(no visible para otras apps)" as alm {
+    database "Base local\n[SQLite + sqlite-vec]" as db
+    folder "modelos/\nGGUF y ONNX (~1,5 a 3 GB)" as mod
+    folder "media/\nminiaturas, PDF,\nfotos y audios del usuario" as media
+  }
+
+  component "Motor de voz de Android\n<<sistema>>" as tts
+}
+
+cloud "Wi-Fi\n(alojamiento, oficina del parque)\nnunca en el sendero" as wifi
+
+cloud "Hugging Face Hub\n<<sistema externo>>" as hf
+cloud "Backend de conocimiento PNN\n<<sistema externo, no definido>>\nPostgreSQL + pgvector + almacenamiento de objetos" as backend
+
+app -right-> llm : puente nativo
+app -right-> stt
+app -right-> img
+app -down-> db : SQL
+llm -down-> mod : mmap
+stt -down-> mod
+img -down-> mod
+app -down-> media
+app -left-> tts : expo-speech
+
+app -up-> wifi : solo CU-05 y CU-06
+wifi -up-> hf : HTTPS, rango de bytes
+wifi -up-> backend : JSON / HTTPS
+
+legend right
+  Gris: fuera del teléfono
+  En campo no hay ninguna conexión de red (RT-01):
+  todo lo de la caja del teléfono funciona en modo avión
+endlegend
+@enduml

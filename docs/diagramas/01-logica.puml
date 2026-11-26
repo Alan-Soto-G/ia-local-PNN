@@ -1,0 +1,153 @@
+@startuml logica
+title Vista lógica: modelo de dominio del Asistente de interpretación ambiental
+
+skinparam backgroundColor #1E3B2F
+skinparam defaultFontName Arial
+skinparam defaultFontColor white
+skinparam titleFontColor white
+skinparam shadowing false
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+skinparam ArrowColor white
+skinparam ArrowFontColor white
+skinparam package {
+  BackgroundColor #24493A
+  BorderColor #A9D18E
+  FontColor white
+}
+skinparam class {
+  BackgroundColor #2E5E4A
+  BorderColor white
+  FontColor white
+  AttributeFontColor white
+  HeaderBackgroundColor #548235
+}
+hide circle
+hide methods
+
+package "Conocimiento (espejo del backend)" {
+  class GrupoTaxonomico {
+    rango
+    nombre
+  }
+  class Especie {
+    nombre científico
+    nombres comunes es / en
+    grupo (fauna, flora, hongo)
+    estado de conservación
+    endémica
+    rango altitudinal
+    descripción
+  }
+  class FichaFauna {
+    dieta
+    comportamiento
+    actividad
+  }
+  class FichaFlora {
+    forma de crecimiento
+    floración
+  }
+  class ImagenEspecie {
+    descripción
+    autor y licencia
+    modelo de embedding
+    vector
+  }
+  class Ecosistema {
+    nombre
+    piso altitudinal
+  }
+  class Ruta {
+    nombre
+    tipo
+    sector
+    dificultad
+    distancia y altitudes
+    estado
+  }
+  class PuntoInteres {
+    nombre
+    tipo
+    ubicación y altitud
+    orden
+  }
+  class PresenciaEnRuta {
+    frecuencia
+    temporada
+  }
+  class DocumentoFuente {
+    título
+    entidad y año
+    tipo
+    validado por
+  }
+  class FragmentoDocumento {
+    página
+    texto
+    vector
+  }
+  class Protocolo {
+    tipo (mínimo impacto, seguridad)
+    texto
+  }
+}
+
+package "Uso en campo (solo en el teléfono)" {
+  class Conversacion {
+    inicio
+    perfil del público
+    idioma
+  }
+  class Mensaje {
+    rol
+    texto
+    adjunto (foto, audio)
+    estado
+  }
+  class Cita {
+    similitud
+  }
+  class PaqueteModelo {
+    tipo (lenguaje, visión, voz, embeddings)
+    versión
+    tamaño y sha256
+    estado de descarga
+  }
+}
+
+package "Retroalimentación (se sube al backend)" {
+  class Resena {
+    calificación de utilidad
+    comprensión
+    rendimiento percibido
+    comentario
+    métricas del dispositivo
+    estado de envío
+  }
+}
+
+GrupoTaxonomico "0..1" -- "0..*" GrupoTaxonomico : padre
+GrupoTaxonomico "1" -- "0..*" Especie
+Especie "1" -- "0..1" FichaFauna
+Especie "1" -- "0..1" FichaFlora
+Especie "1" -- "0..*" ImagenEspecie
+Especie "0..*" -- "0..*" Ecosistema : habita
+Ruta "0..*" -- "0..*" Ecosistema : atraviesa
+Ruta "1" -- "0..*" PuntoInteres
+Especie "1" -- "0..*" PresenciaEnRuta
+Ruta "1" -- "0..*" PresenciaEnRuta
+PresenciaEnRuta "0..*" -- "0..1" PuntoInteres : cerca de
+DocumentoFuente "1" -- "1..*" FragmentoDocumento
+Especie "0..*" -- "1..*" DocumentoFuente : se sustenta en
+Protocolo "0..*" -- "0..1" DocumentoFuente : sale de
+
+Conversacion "1" -- "0..*" Mensaje
+Mensaje "1" -- "0..*" Cita
+Cita "0..*" -- "0..1" FragmentoDocumento
+Cita "0..*" -- "0..1" Especie
+
+Resena "0..*" -- "0..1" Ruta : sobre
+Resena "0..*" -- "0..1" Conversacion : de
+@enduml
