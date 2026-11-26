@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado (2026-11-26)
+Pospuesto por [ADR-017](ADR-017-alcance-version-1.md) (2026-11-26)
 
 ## Contexto
 
@@ -45,4 +45,4 @@ Se eligen **A2 + B1**. Para la entrada, whisper.rn, porque garantiza el funciona
 
 ### Vistas que modifica
 
-[Procesos](../vistas/02-procesos.md) (Transcriptor, Motor de voz de Android), [Desarrollo](../vistas/03-desarrollo.md) (Módulo Voz y sus adaptadores) y la secuencia [CU-03](../diagramas/secuencia/cu03-consultar-voz.puml).
+[Procesos](../vistas/02-procesos.md) (Transcriptor, Motor de voz de Android), [Desarrollo](../vistas/03-desarrollo.md) (Módulo Voz y sus adaptadores) y la secuencia [CU-03](../diagramas/secuencia/historico/cu03-consultar-voz.puml).

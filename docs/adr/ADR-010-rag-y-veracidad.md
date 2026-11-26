@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado (2026-11-26)
+Reemplazado por [ADR-016](ADR-016-rag-por-bandas-y-prompt.md) (2026-11-26)
 
 ## Contexto
 
@@ -39,4 +39,4 @@ Se elige la opción C.
 
 ### Vistas que modifica
 
-[Lógica](../vistas/01-logica.md) (Cita), [Datos](../vistas/05-datos.md) (`vec_fragmento`, `fts_fragmento`, `fuente_especie`), [Desarrollo](../vistas/03-desarrollo.md) (Módulo Consulta) y la secuencia [CU-01](../diagramas/secuencia/cu01-consultar-texto.puml).
+[Lógica](../vistas/01-logica.md) (Cita), [Datos](../vistas/05-datos.md) (`vec_fragmento`, `fts_fragmento`, `fuente_especie`), [Desarrollo](../vistas/03-desarrollo.md) (Módulo Consulta) y la secuencia [CU-01](../diagramas/secuencia/historico/cu01-consultar-texto.puml).

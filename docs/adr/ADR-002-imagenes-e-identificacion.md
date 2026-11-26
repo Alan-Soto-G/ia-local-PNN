@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado (2026-11-26)
+Pospuesto por [ADR-017](ADR-017-alcance-version-1.md) (2026-11-26)
 
 ## Contexto
 
@@ -48,4 +48,4 @@ Se elige la opción C, porque es la única que ata la respuesta al catálogo val
 
 ### Vistas que modifica
 
-[Procesos](../vistas/02-procesos.md) (Codificador de imagen), [Desarrollo](../vistas/03-desarrollo.md) (Módulo Identificación, Adaptador ONNX), [Datos](../vistas/05-datos.md) (`vec_imagen_especie`) y la secuencia [CU-02](../diagramas/secuencia/cu02-identificar-foto.puml).
+[Procesos](../vistas/02-procesos.md) (Codificador de imagen), [Desarrollo](../vistas/03-desarrollo.md) (Módulo Identificación, Adaptador ONNX), [Datos](../vistas/05-datos.md) (`vec_imagen_especie`) y la secuencia [CU-02](../diagramas/secuencia/historico/cu02-identificar-foto.puml).

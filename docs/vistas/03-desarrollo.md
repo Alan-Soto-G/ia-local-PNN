@@ -4,7 +4,7 @@
 
 ## 1. Presentación principal
 
-Diagrama de componentes del contenedor App móvil (ADR-008). De arriba hacia abajo: las pantallas de Expo Router, los módulos de casos de uso, los puertos de `src/aplicacion/puertos/`, los adaptadores que los implementan y las librerías nativas o sistemas externos que estos usan. `src/dominio/` no se dibuja porque todos los módulos lo usan; su contenido es el de la [vista lógica](01-logica.md).
+Diagrama de componentes del contenedor App móvil (ADR-008), versión 1. De arriba hacia abajo: las pantallas de Expo Router, los módulos de casos de uso, los puertos de `src/aplicacion/puertos/`, los adaptadores que los implementan y las librerías nativas o sistemas externos que estos usan. `src/dominio/` no se dibuja porque todos los módulos lo usan; su contenido es el de la [vista lógica](01-logica.md).
 
 Diagrama: [diagramas/03-desarrollo.puml](../diagramas/03-desarrollo.puml)
 
@@ -13,38 +13,35 @@ Diagrama: [diagramas/03-desarrollo.puml](../diagramas/03-desarrollo.puml)
 ```text
 src/
   app/              Rutas de Expo Router: solo pantallas y _layout.tsx (regla de AGENTS.md)
-  components/       Componentes de UI reutilizables (burbuja de chat, botón de hablar, tarjeta de especie)
+  components/       Componentes de UI reutilizables (burbuja de chat, botón grande, aviso de vigencia, cita)
   hooks/            Hooks de React que exponen los casos de uso a las pantallas
   constants/        Tema visual (colores de montaña y páramo), tamaños táctiles
-  dominio/          Entidades, objetos de valor y reglas puras. Sin React, React Native ni Expo
+  dominio/          Entidades, objetos de valor y reglas puras (Carga, Vigencia, Banda...). Sin React, React Native ni Expo
   aplicacion/
-    casos-uso/      Un subdirectorio por módulo (consulta/, identificacion/, voz/, ...)
+    casos-uso/      Un subdirectorio por módulo: actualizacion/, consulta/, vigencia/, modelos/
     puertos/        Interfaces TypeScript que los casos de uso necesitan
+    configuracion/  Constantes versionadas: umbrales, top-k, 24 h, datos de los modelos, textos del prompt
   infraestructura/
-    ia/             Adaptadores llama.rn, ONNX, whisper.rn
-    voz/            Adaptador expo-speech y grabación de audio
+    ia/             Adaptador llama.rn y preparación de modelos desde los assets
     persistencia/   Adaptador SQLite, migraciones del esquema y consultas vectoriales
-    red/            Adaptador HTTP de sincronización y adaptador de descargas
-    dispositivo/    RAM, espacio libre, estado de red (expo-device, expo-network)
+    red/            Adaptador HTTP del backend
+    sistema/        Reloj, notificaciones (expo-notifications) y desinstalación (expo-intent-launcher)
   composicion/      Contenedor de dependencias: lo único que conoce todas las capas
 ```
 
 ### Vista de usos (quién necesita a quién)
 
 ```text
-Módulo Identificación ──usa (genera la respuesta con los candidatos)──> Módulo Consulta
-Módulo Voz ──usa (envía la transcripción)──> Módulo Consulta
-Módulo Consulta ──usa (perfil e idioma)──> Módulo Preferencias
-Módulos Consulta, Identificación y Voz ──usan (modelo cargado)──> Gestor de modelos
-Gestor de modelos ──usa (qué paquetes están listos)──> Módulo Paquetes
-Módulo Sincronización ──usa (reseñas pendientes)──> Módulo Reseñas
-Módulo Conocimiento ──usa──> solo dominio y puertos
+Módulo Consulta ──usa (¿hay carga vigente?)──> Módulo Vigencia
+Módulo Actualización ──usa (iniciar la vigencia de la carga nueva)──> Módulo Vigencia
+Módulos Consulta y Actualización ──usan (modelo listo, modelo de embeddings esperado)──> Gestor de modelos
+Módulo Vigencia ──usa (liberar modelos al vencer)──> Gestor de modelos
 Todos los módulos ──usan──> dominio
-Prohibido: cualquier ciclo (por ejemplo, Módulo Consulta usando Módulo Voz, o Módulo Paquetes usando el Gestor de modelos)
+Prohibido: cualquier ciclo (por ejemplo, Módulo Vigencia usando Módulo Consulta o Módulo Actualización)
 ```
 
-- Incrementos: dominio, Paquetes, Gestor de modelos y Consulta primero; Identificación y Voz se montan sobre Consulta; Sincronización y Reseñas pueden ir al final, porque el primer paquete de conocimiento puede venir en el manifest (ADR-007).
-- Impacto: un cambio en Consulta obliga a revisar Identificación y Voz. Por eso su interfaz se mantiene pequeña: recibe texto, adjuntos opcionales y candidatos, y devuelve un flujo de tokens.
+- Incrementos, en el orden del catálogo: dominio y Módulo Vigencia básico (estado de la carga) → Módulo Actualización (CU-01) → Gestor de modelos y Módulo Consulta (CU-02) → vencimiento completo con notificación y desinstalación (CU-03).
+- Impacto: un cambio en Vigencia obliga a revisar Consulta y Actualización. Por eso su interfaz es mínima: `estado(ahora)`, `iniciar(carga)`, `vencer(decision)`.
 - Los ciclos están prohibidos: son deuda técnica arquitectónica.
 
 ### Vista de capas (solo hacia adentro)
@@ -52,9 +49,9 @@ Prohibido: cualquier ciclo (por ejemplo, Módulo Consulta usando Módulo Voz, o 
 | Capa | Contenido | Puede usar |
 |------|-----------|------------|
 | pantallas (`src/app`, `src/components`, `src/hooks`) | Rutas, componentes y hooks | aplicacion y dominio; nunca infraestructura directamente |
-| infraestructura | Adaptadores de llama.rn, ONNX, whisper.rn, expo-speech, SQLite, HTTP, descargas y dispositivo | aplicacion (implementa los puertos) y dominio |
-| aplicacion | Módulos de casos de uso, Gestor de modelos y puertos | dominio |
-| dominio | Entidades y reglas: Especie, Ruta, DocumentoFuente, Mensaje, Cita, PaqueteModelo, Resena, entre otras | nada externo |
+| infraestructura | Adaptadores de llama.rn, SQLite, HTTP, notificaciones, desinstalación, reloj y preparación de modelos | aplicacion (implementa los puertos) y dominio |
+| aplicacion | Módulos de casos de uso, Gestor de modelos, puertos y constantes | dominio |
+| dominio | Entidades y reglas: Carga, Vigencia, Banda, Documento, Fragmento, Mensaje, Cita, ModeloLocal | nada externo |
 
 `src/composicion/` conecta las capas y entrega los casos de uso a las pantallas mediante un proveedor de React: es lo único que las conoce todas. Si `src/dominio/` importa algo de `react-native`, `expo-*` o `src/infraestructura/`, la arquitectura está rota.
 
@@ -62,54 +59,46 @@ Prohibido: cualquier ciclo (por ejemplo, Módulo Consulta usando Módulo Voz, o 
 
 | Componente | Tipo | Responsabilidad | Depende de |
 |------------|------|-----------------|------------|
-| Chat | Pantalla | Conversación, adjuntar foto, mantener para hablar, detener la generación, activar lectura en voz alta | Módulos Consulta, Identificación y Voz |
-| Rutas y fichas | Pantalla | Lista de rutas por tipo, especies por ruta, ficha de especie, visor del PDF fuente | Módulo Conocimiento |
-| Paquetes | Pantalla | Lista del manifest, progreso, pausar y reanudar, espacio libre | Módulo Paquetes |
-| Reseña | Pantalla | Formulario de reseña con consentimiento para métricas | Módulo Reseñas |
-| Ajustes e historial | Pantalla | Voz, idioma, perfil del público, modelo; historial y borrado | Módulo Preferencias |
-| Módulo Consulta | Caso de uso | CU-01, CU-07 y CU-11: arma la pregunta, recupera contexto (ADR-010), genera en streaming (ADR-004) y guarda Mensaje y Citas | Puertos CodificadorTexto, BuscadorVectorial y RepositorioLocal; Módulo Preferencias; Gestor de modelos |
-| Módulo Identificación | Caso de uso | CU-02: vectoriza la foto, busca los k vecinos, filtra por umbral y pasa candidatos e imagen a Consulta (ADR-002) | Puerto BuscadorVectorial; Gestor de modelos; Módulo Consulta |
-| Módulo Voz | Caso de uso | CU-03 y CU-04: transcribe, entrega el texto a Consulta y lee la respuesta por frases (ADR-003) | Puerto Sintetizador; Gestor de modelos; Módulo Consulta |
-| Módulo Conocimiento | Caso de uso | CU-08 y CU-09: rutas, especies por ruta, fichas y documentos | Puerto RepositorioConocimiento |
-| Módulo Paquetes | Caso de uso | CU-05: lee el manifest, descarga solo con Wi-Fi y espacio suficiente, verifica sha256 (ADR-007) | Puertos Descargador, EstadoDispositivo y RepositorioLocal |
-| Módulo Sincronización | Caso de uso | CU-06: baja cambios por cursor, los aplica por página en una transacción y sube reseñas (ADR-006) | Puertos ClienteSync, RepositorioConocimiento y RepositorioLocal; Módulo Reseñas |
-| Módulo Reseñas | Caso de uso | CU-10: crea la reseña y la deja en la cola de salida | Puerto RepositorioLocal |
-| Módulo Preferencias | Caso de uso | CU-12 y CU-13 | Puerto RepositorioLocal |
-| Gestor de modelos | Servicio de aplicación | Decide qué modelo cargar según la RAM, mantiene uno pesado a la vez y libera el Transcriptor (ADR-009) | Puertos MotorInferencia, Transcriptor, CodificadorImagen y EstadoDispositivo; Módulo Paquetes |
-| MotorInferencia | Puerto | Cargar y liberar el modelo, `generar(mensajes, imagen?) → flujo de tokens`, detener | — |
-| CodificadorTexto | Puerto | Vector de un texto (pregunta) con el mismo modelo que usó el backend | — |
-| CodificadorImagen | Puerto | Vector de una imagen | — |
-| Transcriptor | Puerto | Audio → texto con idioma | — |
-| Sintetizador | Puerto | Leer una frase, detener, saber si hay voz instalada | — |
-| BuscadorVectorial | Puerto | k vecinos más cercanos de un vector en fragmentos o imágenes | — |
-| RepositorioConocimiento | Puerto | Lectura del conocimiento y aplicación de páginas de cambios | — |
-| RepositorioLocal | Puerto | Conversaciones, mensajes, reseñas, cola de salida, preferencias, estado de paquetes y de sync | — |
-| ClienteSync | Puerto | Pedir cambios desde un cursor, pedir el manifest, enviar reseñas | — |
-| Descargador | Puerto | Descarga reanudable con progreso y verificación | — |
-| EstadoDispositivo | Puerto | RAM total, espacio libre, tipo de red | — |
+| Inicio | Pantalla | Botón "Actualizar información", progreso y resultado de la carga, estado de la vigencia ("Disponible hasta las 15:04"), acceso al chat solo si está vigente | Módulos Actualización y Vigencia |
+| Chat | Pantalla | Conversación, enviar, detener la generación, mostrar citas; si la vigencia vence mientras está abierto, se bloquea y lleva al diálogo de vencimiento | Módulos Consulta y Vigencia |
+| Diálogo de vencimiento | Pantalla (modal) | "Ya no tienes acceso a la información del recorrido. ¿Deseas desinstalar la aplicación?" Sí / No | Módulo Vigencia |
+| Módulo Actualización | Caso de uso | CU-01: verifica el backend y el modelo de embeddings, baja documentos y fragmentos, reemplaza la base en una transacción e inicia la vigencia (ADR-012) | Puertos ClienteBackend y RepositorioConocimiento; Gestor de modelos; Módulo Vigencia |
+| Módulo Consulta | Caso de uso | CU-02: comprueba la vigencia, vectoriza la pregunta, busca los k vecinos, calcula la banda, genera en streaming o usa el texto fijo, guarda Mensaje y Citas (ADR-004, ADR-016) | Puertos CodificadorTexto, BuscadorVectorial, MotorInferencia y RepositorioConversaciones; Gestor de modelos; Módulo Vigencia |
+| Módulo Vigencia | Caso de uso | CU-03: estado de la carga según el reloj, programa y cancela la notificación, borra la información y abre la desinstalación (ADR-015) | Puertos Reloj, Notificador, Desinstalador, RepositorioConocimiento y RepositorioConversaciones; Gestor de modelos |
+| Gestor de modelos | Servicio de aplicación | Prepara los modelos desde el APK, los carga, los libera en segundo plano y al vencer; informa el modelo de embeddings esperado (ADR-013, ADR-014) | Puertos PreparadorModelos, MotorInferencia y CodificadorTexto |
+| MotorInferencia | Puerto | Cargar y liberar el modelo de lenguaje, `generar(sistema, turno) → flujo de tokens`, detener | — |
+| CodificadorTexto | Puerto | Cargar y liberar el modelo de embeddings; vector normalizado de 384 valores de un texto | — |
+| PreparadorModelos | Puerto | Copiar un asset del APK al almacenamiento interno y verificar su sha256 | — |
+| BuscadorVectorial | Puerto | k fragmentos más cercanos a un vector, con su similitud | — |
+| RepositorioConocimiento | Puerto | Leer la Carga; reemplazar documentos, fragmentos y vectores en una transacción; borrar todo | — |
+| RepositorioConversaciones | Puerto | Conversaciones, mensajes y citas; borrar todo | — |
+| ClienteBackend | Puerto | `salud()`, `documentos()`, `fragmentos(id)` contra el backend RAG | — |
+| Reloj | Puerto | Hora actual | — |
+| Notificador | Puerto | Pedir permiso, programar y cancelar la notificación de vencimiento, saber si se abrió la app desde ella | — |
+| Desinstalador | Puerto | Abrir el diálogo de desinstalación del sistema | — |
 | Adaptador llama.rn | Adaptador | Implementa MotorInferencia y CodificadorTexto; traduce la falta de memoria a `MemoriaInsuficiente` | llama.rn |
-| Adaptador ONNX | Adaptador | Implementa CodificadorImagen: redimensiona, normaliza y ejecuta el modelo | onnxruntime-react-native |
-| Adaptador whisper.rn | Adaptador | Implementa Transcriptor | whisper.rn |
-| Adaptador expo-speech | Adaptador | Implementa Sintetizador | expo-speech |
-| Adaptador SQLite | Adaptador | Implementa BuscadorVectorial, RepositorioConocimiento y RepositorioLocal; aplica migraciones | expo-sqlite + sqlite-vec |
-| Adaptador HTTP de sync | Adaptador | Implementa ClienteSync con la URL de `process.env.EXPO_PUBLIC_BACKEND_URL` | fetch / HTTPS |
-| Adaptador de descargas | Adaptador | Implementa Descargador con descargas reanudables y sha256 | expo-file-system, expo-crypto |
-| Adaptador de dispositivo | Adaptador | Implementa EstadoDispositivo | expo-device, expo-network |
+| Adaptador de preparación de modelos | Adaptador | Implementa PreparadorModelos | expo-asset, expo-file-system, expo-crypto |
+| Adaptador SQLite | Adaptador | Implementa BuscadorVectorial, RepositorioConocimiento y RepositorioConversaciones; aplica migraciones | expo-sqlite + sqlite-vec |
+| Adaptador HTTP del backend | Adaptador | Implementa ClienteBackend con `process.env.EXPO_PUBLIC_BACKEND_URL`, tiempo límite de 5 s para la salud; traduce fallas a `BackendNoDisponible` | fetch |
+| Adaptador de notificaciones | Adaptador | Implementa Notificador | expo-notifications |
+| Adaptador de desinstalación | Adaptador | Implementa Desinstalador con `android.intent.action.DELETE` y `package:<id>` | expo-intent-launcher |
+| Adaptador de reloj | Adaptador | Implementa Reloj con `Date.now()`; en pruebas se reemplaza por un reloj falso | — |
 
 ## 3. Justificación
 
-- ADR-008 y PA-01: los motores de IA cambian rápido; quedan detrás de puertos y el dominio no los conoce (EAC-07).
-- ADR-009 y EAC-04: un único Gestor de modelos decide qué se carga; ningún módulo carga un modelo por su cuenta.
-- ADR-010 y EAC-05: la recuperación local y las citas viven en el Módulo Consulta, que reutilizan Identificación y Voz, así que toda respuesta pasa por el mismo control de fuentes.
+- ADR-008 y PA-01: los motores de IA y los servicios de Android quedan detrás de puertos; el dominio no los conoce (EAC-07).
+- ADR-014: un único Gestor de modelos decide qué se carga; ningún módulo carga un modelo por su cuenta.
+- ADR-016 y EAC-05: la banda y las citas viven en el Módulo Consulta; los textos fijos vienen de `aplicacion/configuracion/`, copiados de [prompt-sistema.md](../prompt-sistema.md).
 - ADR-004 y EAC-01: `MotorInferencia.generar` devuelve un flujo de tokens; la pantalla los agrupa antes de pintarlos.
-- ADR-005: un solo adaptador conoce SQL y sqlite-vec.
-- ADR-006 y ADR-007: la red solo aparece en dos adaptadores, y solo los usan Sincronización y Paquetes (EAC-02).
-- RT-04 y PA-09: llama.rn, whisper.rn y onnxruntime-react-native son módulos nativos; la app se prueba con un development build, no con Expo Go (ADR-011).
+- ADR-012 y EAC-02: la red solo aparece en el Adaptador HTTP del backend, y solo lo usa el Módulo Actualización.
+- ADR-015 y EAC-08: el Reloj es un puerto, así el vencimiento se prueba sin esperar 24 h.
+- RT-04 y PA-09: llama.rn, expo-notifications y expo-intent-launcher tienen código nativo; la app se prueba con un development build, no con Expo Go (ADR-011).
 
 ## 4. Comportamiento
 
-- CU-01 dentro de la app: Chat, Módulo Consulta, Adaptador llama.rn y Adaptador SQLite ([cu01-consultar-texto.puml](../diagramas/secuencia/cu01-consultar-texto.puml)).
-- CU-02 dentro de la app: Módulo Identificación, Adaptador ONNX, Adaptador SQLite y luego Módulo Consulta ([cu02-identificar-foto.puml](../diagramas/secuencia/cu02-identificar-foto.puml)).
+- CU-01 dentro de la app: Inicio, Módulo Actualización, Adaptador HTTP, Adaptador SQLite y Módulo Vigencia ([cu01-actualizar-informacion.puml](../diagramas/secuencia/cu01-actualizar-informacion.puml)).
+- CU-02 dentro de la app: Chat, Módulo Consulta, Adaptador llama.rn y Adaptador SQLite ([cu02-consultar-texto.puml](../diagramas/secuencia/cu02-consultar-texto.puml)).
+- CU-03 dentro de la app: Módulo Vigencia, Adaptador de notificaciones, Adaptador SQLite y Adaptador de desinstalación ([cu03-vencer-vigencia.puml](../diagramas/secuencia/cu03-vencer-vigencia.puml)).
 
 ## 5. Vistas relacionadas
 

@@ -24,6 +24,8 @@ Reglas:
 - La traza cita los IDs de `docs/drivers.md` y de los ADR.
 - Describir comportamiento, no cómo se programa (el cómo va en `plan.md`).
 - Si el CU se usa en campo, incluir un escenario en modo avión (EAC-02).
+- Si el CU usa la información cargada, incluir un escenario con la vigencia vencida (EAC-08).
+- Si el CU responde preguntas, usar los textos exactos de `docs/prompt-sistema.md`.
 - Los escenarios de desempeño y recursos (EAC-01, EAC-04, EAC-06) dicen en qué dispositivo Android se miden.
 - No inventar requisitos. Donde falte información, escribir en ese mismo lugar el comentario `# [NECESITA ACLARACIÓN: <pregunta concreta>]` (con `#` delante, para que siga siendo Gherkin válido) y seguir con lo demás.
 - Al terminar, listar todas las marcas `[NECESITA ACLARACIÓN]` que dejó.

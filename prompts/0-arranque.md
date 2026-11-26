@@ -10,7 +10,9 @@ Antes de hacer cualquier cosa, lee estos archivos:
 
 Resume en tres líneas las reglas que vas a respetar.
 
-Después ejecuta prompts/1-especificar.md para specs/001-consultar-texto/ y detente al terminar.
+Después ejecuta prompts/1-especificar.md para specs/001-actualizar-informacion/ y detente al terminar.
 ```
 
 Para otra fase o funcionalidad se cambia solo la última línea: el archivo de `prompts/` y la carpeta de `specs/`. El número de la carpeta es el del caso de uso en el catálogo de `docs/drivers.md` (CU-01 → `001`).
+
+Orden de la versión 1: `specs/001-actualizar-informacion/` (CU-01), `specs/002-consultar-texto/` (CU-02) y `specs/003-vencer-vigencia/` (CU-03). Cada uno pasa por las fases 1 a 5 antes de empezar el siguiente.

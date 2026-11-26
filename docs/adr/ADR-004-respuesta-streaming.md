@@ -38,4 +38,4 @@ Se elige la opción C.
 
 ### Vistas que modifica
 
-[Lógica](../vistas/01-logica.md) (ciclo de vida del Mensaje), [Desarrollo](../vistas/03-desarrollo.md) (puerto MotorInferencia) y la secuencia [CU-01](../diagramas/secuencia/cu01-consultar-texto.puml).
+[Lógica](../vistas/01-logica.md) (ciclo de vida del Mensaje), [Desarrollo](../vistas/03-desarrollo.md) (puerto MotorInferencia) y la secuencia [CU-02](../diagramas/secuencia/cu02-consultar-texto.puml).

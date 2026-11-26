@@ -4,40 +4,27 @@ LAYOUT_WITH_LEGEND()
 skinparam linetype polyline
 skinparam nodesep 70
 skinparam ranksep 90
-title Vista de procesos: contenedores del Asistente de interpretación ambiental (C4 nivel 2)
+title Vista de procesos: contenedores del Asistente, versión 1 (C4 nivel 2)
 
-Person(guia, "Guía / Visitante", "Pregunta por texto, foto o voz")
+Person(usuario, "Visitante / Guía", "Actualiza la información y pregunta por texto")
 
 System_Boundary(sistema, "Asistente de interpretación ambiental (APK Android)") {
-  Container(app, "App móvil", "Expo SDK 58, React Native, TypeScript", "Pantallas (Expo Router), casos de uso, sincronizador y gestor de descargas (ADR-008)")
-  Container(llm, "Motor de inferencia", "llama.rn (llama.cpp), Qwen3.5 GGUF + mmproj", "Genera respuestas en streaming, ve imágenes y calcula embeddings de texto (ADR-001, ADR-004)")
-  Container(stt, "Transcriptor", "whisper.rn (whisper.cpp)", "Voz a texto, se carga solo mientras transcribe (ADR-003, ADR-009)")
-  Container(img, "Codificador de imagen", "onnxruntime-react-native, MobileCLIP / SigLIP", "Vector de la foto para buscar especies (ADR-002)")
-  ContainerDb(db, "Base local", "expo-sqlite + sqlite-vec", "Conocimiento espejo, vectores, conversaciones, reseñas y cola de salida (ADR-005)")
-  ContainerDb(files, "Archivos locales", "Almacenamiento interno (expo-file-system)", "Modelos GGUF/ONNX, miniaturas, PDF, fotos y audio del usuario")
+  Container(app, "App móvil", "Expo SDK 58, React Native, TypeScript", "Pantallas (Expo Router), casos de uso Actualización, Consulta y Vigencia, Gestor de modelos (ADR-008)")
+  Container(llm, "Motor de inferencia", "llama.rn (llama.cpp)", "LFM2.5-350M en streaming y embeddings con MiniLM multilingüe (ADR-004, ADR-014)")
+  ContainerDb(db, "Base local", "expo-sqlite + sqlite-vec", "Carga, documentos, fragmentos, vectores, conversaciones y citas (ADR-012)")
+  ContainerDb(files, "Archivos locales", "Almacenamiento interno", "Copia de los modelos GGUF que trae el APK (ADR-013)")
 }
 
-System_Ext(tts, "Motor de voz de Android", "Voces del sistema (expo-speech)")
-System_Ext(backend, "Backend de conocimiento PNN", "PostgreSQL + pgvector; propio o Supabase")
-System_Ext(hf, "Hugging Face Hub", "Archivos de modelos")
+System_Ext(backend, "Backend RAG", "FastAPI en el computador administrador (API.md)")
+System_Ext(notif, "Notificaciones de Android", "expo-notifications")
+System_Ext(instalador, "Instalador de paquetes", "Android")
 
-Lay_R(llm, stt)
-Lay_R(stt, img)
-Lay_R(db, files)
-Lay_R(backend, hf)
-
-Rel_D(guia, app, "usa", "pantalla, cámara, micrófono")
-
-Rel_D(app, llm, "completion con streaming de tokens; embedding de la pregunta", "puente nativo (JSI)")
-Rel_D(app, stt, "transcribe el audio grabado", "puente nativo")
-Rel_D(app, img, "vectoriza la foto", "puente nativo")
-Rel_D(app, db, "lee y escribe; búsqueda kNN", "SQL")
-Rel_D(app, files, "guarda adjuntos y descargas", "sistema de archivos")
-Rel_L(llm, files, "carga el modelo", "mmap")
-Rel_L(stt, files, "carga el modelo", "archivo")
-Rel_R(img, files, "carga el modelo", "archivo")
-Rel_R(app, tts, "lee la respuesta por frases", "API de Android")
-
-Rel_D(app, backend, "baja cambios y manifest; sube reseñas (solo con conexión, CU-06)", "JSON / HTTPS")
-Rel_D(app, hf, "descarga modelos (solo Wi-Fi, CU-05)", "HTTPS, rango de bytes")
+Rel(usuario, app, "Usa", "pantalla táctil")
+Rel(app, llm, "Genera y vectoriza", "puente nativo")
+Rel(llm, files, "Carga los modelos")
+Rel(app, files, "Copia los modelos desde el APK")
+Rel(app, db, "Lee y escribe", "SQL")
+Rel(app, backend, "GET /health/db, /documents, /documents/{id}/chunks (solo CU-01)", "HTTP, red del punto de acceso")
+Rel(app, notif, "Programa y cancela el aviso de vencimiento")
+Rel(app, instalador, "Abre el diálogo de desinstalación")
 @enduml

@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado (2026-11-26)
+Reemplazado por [ADR-012](ADR-012-backend-local-y-carga-completa.md) (2026-11-26)
 
 ## Contexto
 
@@ -40,4 +40,4 @@ Se elige la opción B, porque los datos solo viajan en una dirección por grupo 
 
 ### Vistas que modifica
 
-[Contexto](../contexto.md), [Procesos](../vistas/02-procesos.md), [Desarrollo](../vistas/03-desarrollo.md) (Módulo Sincronización, Adaptador HTTP), [Datos](../vistas/05-datos.md) y la secuencia [CU-06](../diagramas/secuencia/cu06-sincronizar.puml).
+[Contexto](../contexto.md), [Procesos](../vistas/02-procesos.md), [Desarrollo](../vistas/03-desarrollo.md) (Módulo Sincronización, Adaptador HTTP), [Datos](../vistas/05-datos.md) y la secuencia [CU-06](../diagramas/secuencia/historico/cu06-sincronizar.puml).

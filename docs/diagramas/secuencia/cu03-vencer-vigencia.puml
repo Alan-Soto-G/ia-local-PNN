@@ -1,0 +1,85 @@
+@startuml cu03
+title ESC-03: CU-03 Vencer la vigencia de 24 h (EAC-08; ADR-015)
+skinparam backgroundColor #1E3B2F
+skinparam defaultFontName Arial
+skinparam defaultFontColor white
+skinparam titleFontColor white
+skinparam shadowing false
+skinparam ArrowColor white
+skinparam ArrowFontColor white
+skinparam ArrowFontSize 11
+skinparam BoxPadding 10
+skinparam wrapWidth 230
+skinparam maxMessageSize 230
+skinparam responseMessageBelowArrow true
+skinparam sequenceMessageAlign left
+skinparam NoteTextAlignment left
+skinparam SequenceGroupBodyBackgroundColor transparent
+<style>
+participant {
+  Padding 25
+}
+</style>
+skinparam sequence {
+  LifeLineBorderColor white
+  LifeLineBackgroundColor #548235
+  ParticipantBackgroundColor #548235
+  ParticipantBorderColor white
+  ParticipantFontColor white
+  ActorBackgroundColor #548235
+  ActorBorderColor white
+  ActorFontColor white
+  GroupBackgroundColor #2E5E4A
+  GroupBorderColor white
+  GroupFontColor white
+  BoxBackgroundColor #2E5E4A
+}
+skinparam note {
+  BackgroundColor #FFF2CC
+  BorderColor #C00000
+  FontColor #C00000
+}
+
+actor "Visitante / Guía" as U
+participant "Notificaciones\nde Android" as N
+participant "App\n(pantallas)" as UI
+participant "Módulo Vigencia" as V
+participant "Gestor de modelos" as G
+participant "Base local" as DB
+participant "Instalador de paquetes\nde Android" as I
+
+== A la hora expira_en (app abierta o cerrada) ==
+N -> U : "Tu acceso a la información del recorrido terminó. Abre la app para cargarla de nuevo o desinstalarla."
+note right of N : El chat ya está bloqueado desde expira_en, aunque el aviso se retrase (DT-06)
+
+== Al abrir la app, volver a primer plano o tocar el aviso ==
+U -> UI : abre la app
+UI -> V : estado(ahora)
+V -> DB : lee carga
+V --> UI : vencida (ahora ≥ expira_en)
+UI --> U : "Ya no tienes acceso a la información del recorrido. ¿Deseas desinstalar la aplicación?"
+
+alt el usuario elige "No"
+  U -> UI : No
+  UI -> V : vencer(no)
+  V -> G : liberar modelos
+  V -> DB : en una transacción borra documento, fragmento, vec_fragmento, conversacion, mensaje y cita; carga = sin_datos
+  V --> UI : sin_datos
+  UI --> U : Inicio con "Actualizar información"; el chat sigue bloqueado
+else el usuario elige "Sí"
+  U -> UI : Sí
+  UI -> V : vencer(sí)
+  V -> G : liberar modelos
+  V -> DB : el mismo borrado que con "No"
+  V -> I : android.intent.action.DELETE, package:<id de la app>
+  I --> U : "¿Quieres desinstalar esta app?"
+  alt confirma
+    U -> I : Aceptar
+    I -> I : desinstala la app
+  else cancela
+    U -> I : Cancelar
+    I --> UI : vuelve a la app
+    UI --> U : Inicio con "Actualizar información"
+  end
+end
+@enduml

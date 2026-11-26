@@ -1,174 +1,119 @@
 @startuml desarrollo
-title Vista de desarrollo: componentes de la App móvil, por paquetes y capas
+title Vista de desarrollo: componentes de la App móvil, versión 1, por paquetes y capas
 
 skinparam backgroundColor #1E3B2F
 skinparam defaultFontName Arial
 skinparam defaultFontColor white
 skinparam titleFontColor white
 skinparam shadowing false
+skinparam ArrowColor white
+skinparam ArrowFontColor white
+skinparam ArrowFontSize 11
 skinparam linetype ortho
 skinparam nodesep 50
 skinparam ranksep 80
 skinparam packageStyle rectangle
-skinparam ArrowColor white
-skinparam ArrowFontColor white
-skinparam ArrowFontSize 11
 skinparam package {
   BackgroundColor #24493A
   BorderColor #A9D18E
   FontColor white
-  FontSize 14
 }
 skinparam class {
   BackgroundColor #2E5E4A
   BorderColor white
   FontColor white
-  StereotypeFontColor #C5E0B4
+  AttributeFontColor white
   HeaderBackgroundColor #548235
-}
-skinparam class<<externo>> {
-  BackgroundColor #7F7F7F
+  StereotypeFontColor #C5E0B4
 }
 hide circle
-hide empty members
+hide methods
 
-package "App móvil (Expo SDK 58, ADR-008)" as appmovil {
-
-  package "src/app + src/components: pantallas (Expo Router)" as ui {
-    class "Chat" as pchat <<CU-01..04, 07, 11>>
-    class "Rutas y fichas" as prutas <<CU-08, CU-09>>
-    class "Paquetes" as ppaq <<CU-05>>
-    class "Reseña" as pres <<CU-10>>
-    class "Ajustes e historial" as pajus <<CU-12, CU-13>>
-  }
-
-  package "src/composicion" as comp {
-    class "Contenedor de dependencias" as cont
-  }
-
-  package "src/aplicacion: módulos de casos de uso" as casos {
-    class "Módulo Consulta" as mcons <<CU-01, CU-07, CU-11, ADR-010>>
-    class "Módulo Identificación" as mid <<CU-02, ADR-002>>
-    class "Módulo Voz" as mvoz <<CU-03, CU-04, ADR-003>>
-    class "Módulo Conocimiento" as mcon <<CU-08, CU-09>>
-    class "Módulo Paquetes" as mpaq <<CU-05, ADR-007>>
-    class "Módulo Sincronización" as msync <<CU-06, ADR-006>>
-    class "Módulo Reseñas" as mres <<CU-10>>
-    class "Módulo Preferencias" as mpref <<CU-12, CU-13>>
-    class "Gestor de modelos" as gmod <<ADR-009>>
-  }
-
-  package "src/aplicacion/puertos" as puertos {
-    interface MotorInferencia
-    interface CodificadorTexto
-    interface CodificadorImagen
-    interface Transcriptor
-    interface Sintetizador
-    interface BuscadorVectorial
-    interface RepositorioConocimiento
-    interface RepositorioLocal
-    interface ClienteSync
-    interface Descargador
-    interface EstadoDispositivo
-  }
-
-  package "src/infraestructura: adaptadores" as salida {
-    class "Adaptador llama.rn" as allama <<ADR-001>>
-    class "Adaptador ONNX" as aonnx <<ADR-002>>
-    class "Adaptador whisper.rn" as awhisper <<ADR-003>>
-    class "Adaptador expo-speech" as aspeech <<ADR-003>>
-    class "Adaptador SQLite" as asql <<ADR-005>>
-    class "Adaptador HTTP de sync" as ahttp <<ADR-006>>
-    class "Adaptador de descargas" as adesc <<ADR-007>>
-    class "Adaptador de dispositivo" as adisp
-  }
+package "Pantallas (src/app, src/components, src/hooks)" as P {
+  class Inicio
+  class Chat
+  class "Diálogo de vencimiento" as Dialogo
 }
 
-package "Librerías nativas y sistemas externos" as externos {
-  class "llama.cpp" as llamacpp <<externo>>
-  class "ONNX Runtime" as ort <<externo>>
-  class "whisper.cpp" as whispercpp <<externo>>
-  class "TTS de Android" as ttsand <<externo>>
-  class "SQLite + sqlite-vec" as sqlite <<externo>>
-  class "Backend de conocimiento" as backend <<externo>>
-  class "Hugging Face / archivos" as hf <<externo>>
+package "Casos de uso (src/aplicacion/casos-uso)" as A {
+  class "Módulo Actualización\nCU-01" as MAct
+  class "Módulo Consulta\nCU-02" as MCon
+  class "Módulo Vigencia\nCU-03" as MVig
+  class "Gestor de modelos" as GM
 }
 
-' ---- Orden horizontal ----
-pchat -[hidden]right- prutas
-prutas -[hidden]right- ppaq
-ppaq -[hidden]right- pres
-pres -[hidden]right- pajus
-MotorInferencia -[hidden]right- CodificadorTexto
-CodificadorTexto -[hidden]right- CodificadorImagen
-CodificadorImagen -[hidden]right- Transcriptor
-Transcriptor -[hidden]right- Sintetizador
-Sintetizador -[hidden]right- BuscadorVectorial
-BuscadorVectorial -[hidden]right- RepositorioConocimiento
-RepositorioConocimiento -[hidden]right- RepositorioLocal
-RepositorioLocal -[hidden]right- ClienteSync
-ClienteSync -[hidden]right- Descargador
-Descargador -[hidden]right- EstadoDispositivo
+package "Puertos (src/aplicacion/puertos)" as Pu {
+  class ClienteBackend <<puerto>>
+  class RepositorioConocimiento <<puerto>>
+  class RepositorioConversaciones <<puerto>>
+  class BuscadorVectorial <<puerto>>
+  class MotorInferencia <<puerto>>
+  class CodificadorTexto <<puerto>>
+  class PreparadorModelos <<puerto>>
+  class Reloj <<puerto>>
+  class Notificador <<puerto>>
+  class Desinstalador <<puerto>>
+}
 
-' ---- Entrada ----
-ui -down-> casos : invoca el caso de uso (hooks)
-cont -right-> casos : inyecta adaptadores
+package "Adaptadores (src/infraestructura)" as I {
+  class "Adaptador HTTP del backend" as AHttp
+  class "Adaptador SQLite" as ASql
+  class "Adaptador llama.rn" as ALlama
+  class "Preparación de modelos" as APrep
+  class "Adaptador de notificaciones" as ANot
+  class "Adaptador de desinstalación" as ADes
+  class "Adaptador de reloj" as ARel
+}
 
-' ---- Vista de usos entre módulos (sin ciclos) ----
-mid -down-> mcons : genera la respuesta con candidatos
-mvoz -down-> mcons : envía la transcripción
-mcons -down-> mpref : perfil e idioma
-mcons -down-> gmod : modelo cargado
-mid -down-> gmod
-mvoz -down-> gmod
-gmod -down-> mpaq : paquetes listos
-msync -down-> mres : reseñas pendientes
+package "Librerías y sistema" as L {
+  class fetch
+  class "expo-sqlite + sqlite-vec" as LSql
+  class "llama.rn" as LLlama
+  class "expo-asset / expo-file-system / expo-crypto" as LFs
+  class "expo-notifications" as LNot
+  class "expo-intent-launcher" as LInt
+}
 
-' ---- Uso de puertos ----
-gmod -down-> MotorInferencia
-gmod -down-> Transcriptor
-gmod -down-> CodificadorImagen
-gmod -down-> EstadoDispositivo : RAM disponible
-mcons -down-> CodificadorTexto
-mcons -down-> BuscadorVectorial
-mid -down-> BuscadorVectorial
-mvoz -down-> Sintetizador
-mcon -down-> RepositorioConocimiento
-mpaq -down-> Descargador
-mpaq -down-> EstadoDispositivo : Wi-Fi y espacio
-msync -down-> ClienteSync
-msync -down-> RepositorioConocimiento
-casos -down-> RepositorioLocal : conversaciones, reseñas, estado
+Inicio --> MAct
+Inicio --> MVig
+Chat --> MCon
+Chat --> MVig
+Dialogo --> MVig
 
-' ---- Los adaptadores implementan los puertos ----
-allama .up.|> MotorInferencia
-allama .up.|> CodificadorTexto
-aonnx .up.|> CodificadorImagen
-awhisper .up.|> Transcriptor
-aspeech .up.|> Sintetizador
-asql .up.|> BuscadorVectorial
-asql .up.|> RepositorioConocimiento
-asql .up.|> RepositorioLocal
-ahttp .up.|> ClienteSync
-adesc .up.|> Descargador
-adisp .up.|> EstadoDispositivo
+MAct --> MVig
+MCon --> MVig
+MAct --> GM
+MCon --> GM
+MVig --> GM
 
-' ---- Adaptadores hacia lo real ----
-allama -down-> llamacpp
-aonnx -down-> ort
-awhisper -down-> whispercpp
-aspeech -down-> ttsand
-asql -down-> sqlite
-ahttp -down-> backend : HTTPS
-adesc -down-> hf : HTTPS
+MAct --> ClienteBackend
+MAct --> RepositorioConocimiento
+MCon --> BuscadorVectorial
+MCon --> RepositorioConversaciones
+MVig --> Reloj
+MVig --> Notificador
+MVig --> Desinstalador
+MVig --> RepositorioConocimiento
+MVig --> RepositorioConversaciones
+GM --> MotorInferencia
+GM --> CodificadorTexto
+GM --> PreparadorModelos
 
-legend right
-  Flecha continua: usa / depende de
-  Flecha punteada con triángulo: implementa el puerto
-  Gris: fuera del código de la app
-  Las dependencias solo apuntan hacia adentro:
-  pantallas -> aplicacion -> dominio
-  infraestructura -> aplicacion (implementa puertos)
-  src/dominio no aparece: lo usan todos los módulos
-endlegend
+AHttp ..|> ClienteBackend
+ASql ..|> RepositorioConocimiento
+ASql ..|> RepositorioConversaciones
+ASql ..|> BuscadorVectorial
+ALlama ..|> MotorInferencia
+ALlama ..|> CodificadorTexto
+APrep ..|> PreparadorModelos
+ANot ..|> Notificador
+ADes ..|> Desinstalador
+ARel ..|> Reloj
+
+AHttp --> fetch
+ASql --> LSql
+ALlama --> LLlama
+APrep --> LFs
+ANot --> LNot
+ADes --> LInt
 @enduml

@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado (2026-11-26)
+Reemplazado por [ADR-014](ADR-014-motor-local-lfm-minilm.md) (2026-11-26)
 
 ## Contexto
 

@@ -1,0 +1,89 @@
+@startuml cu02
+title ESC-02: CU-02 Consultar por texto (EAC-01, EAC-02, EAC-05; ADR-004, ADR-014, ADR-016)
+skinparam backgroundColor #1E3B2F
+skinparam defaultFontName Arial
+skinparam defaultFontColor white
+skinparam titleFontColor white
+skinparam shadowing false
+skinparam ArrowColor white
+skinparam ArrowFontColor white
+skinparam ArrowFontSize 11
+skinparam BoxPadding 10
+skinparam wrapWidth 230
+skinparam maxMessageSize 230
+skinparam responseMessageBelowArrow true
+skinparam sequenceMessageAlign left
+skinparam NoteTextAlignment left
+skinparam SequenceGroupBodyBackgroundColor transparent
+<style>
+participant {
+  Padding 25
+}
+</style>
+skinparam sequence {
+  LifeLineBorderColor white
+  LifeLineBackgroundColor #548235
+  ParticipantBackgroundColor #548235
+  ParticipantBorderColor white
+  ParticipantFontColor white
+  ActorBackgroundColor #548235
+  ActorBorderColor white
+  ActorFontColor white
+  GroupBackgroundColor #2E5E4A
+  GroupBorderColor white
+  GroupFontColor white
+  BoxBackgroundColor #2E5E4A
+}
+skinparam note {
+  BackgroundColor #FFF2CC
+  BorderColor #C00000
+  FontColor #C00000
+}
+
+actor "Visitante / Guía" as U
+participant "Chat\n(pantalla)" as UI
+participant "Módulo Consulta" as C
+participant "Módulo Vigencia" as V
+participant "Gestor de modelos" as G
+participant "Motor de inferencia\n(llama.rn)" as M
+participant "Base local\n(SQLite + sqlite-vec)" as DB
+
+U -> UI : escribe "¿Qué come el zorro rojo?"
+UI -> C : consultar(texto, conversación)
+C -> V : estado(ahora)
+alt no vigente
+  V --> C : vencida o sin_datos
+  C --> UI : SinCargaVigente (lleva al diálogo de vencimiento o a Inicio)
+else vigente
+  C -> G : modelos listos
+  G --> C : motor y codificador cargados
+  C -> DB : guarda el Mensaje del usuario
+  C -> M : embedding(pregunta)
+  M --> C : vector normalizado (384)
+  C -> DB : kNN en vec_fragmento, k = 4
+  DB --> C : fragmentos con similitud
+  C -> C : banda según la mejor similitud (ADR-016)
+  alt BAJA (< 0,40)
+    C --> UI : "No encontré información sobre eso en los documentos del recorrido."
+    C -> DB : Mensaje completo, banda BAJA, sin citas
+  else MEDIA (0,40 a 0,55)
+    C --> UI : "No tengo información suficiente para responder con certeza. Te recomiendo consultar al guía del recorrido."
+    C -> DB : Mensaje completo, banda MEDIA, sin citas
+  else ALTA (≥ 0,55)
+    C -> DB : crea el Mensaje del asistente en "generando"
+    C -> M : generar(prompt del sistema, NIVEL: ALTO + fragmentos + pregunta)
+    loop por cada token
+      M --> C : token
+      C --> UI : agrega el token (la UI pinta cada ~50 ms, ADR-004)
+    end
+    note across : Primer texto visible en ≤ 3 s en el 90% de las consultas, en modo avión: EAC-01 y EAC-02
+    opt el usuario toca "detener"
+      UI -> C : detener()
+      C -> M : detener
+      C -> DB : Mensaje "detenido" con el texto parcial
+    end
+    C -> DB : Mensaje "completo" + Citas (fragmento, similitud) + TTFT
+    C --> UI : muestra documento y página de cada cita
+  end
+end
+@enduml

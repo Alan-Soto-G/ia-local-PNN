@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado (2026-11-26)
+Reemplazado por [ADR-014](ADR-014-motor-local-lfm-minilm.md) (2026-11-26)
 
 ## Contexto
 
@@ -48,4 +48,4 @@ Se elige la opción C. Un único Gestor de modelos (servicio de aplicación) es 
 
 ### Vistas que modifica
 
-[Desarrollo](../vistas/03-desarrollo.md) (Gestor de modelos), [Física](../vistas/04-fisica.md) (perfiles por RAM) y las secuencias [CU-02](../diagramas/secuencia/cu02-identificar-foto.puml) y [CU-03](../diagramas/secuencia/cu03-consultar-voz.puml).
+[Desarrollo](../vistas/03-desarrollo.md) (Gestor de modelos), [Física](../vistas/04-fisica.md) (perfiles por RAM) y las secuencias [CU-02](../diagramas/secuencia/historico/cu02-identificar-foto.puml) y [CU-03](../diagramas/secuencia/historico/cu03-consultar-voz.puml).

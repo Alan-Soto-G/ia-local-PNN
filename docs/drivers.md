@@ -1,26 +1,24 @@
 # Drivers arquitectónicos: Asistente de interpretación ambiental offline (PNN Los Nevados)
 
-> **Enunciado.** Partiendo de [vision.md](vision.md), se extraen los drivers que moldean la arquitectura: casos de uso primarios, escenarios de atributos de calidad, restricciones y preocupaciones arquitectónicas, más la matriz de priorización y la tabla de escenarios (+1).
+> **Enunciado.** Partiendo de [vision.md](vision.md), se extraen los drivers que moldean la arquitectura de la **versión 1** ([ADR-017](adr/ADR-017-alcance-version-1.md)): casos de uso primarios, escenarios de atributos de calidad, restricciones y preocupaciones arquitectónicas, más la matriz de priorización y la tabla de escenarios (+1). Lo pospuesto está en la sección 7.
 
 ## 1. Casos de uso y casos de uso primarios
 
 | ID | Caso de uso | Actor | ¿Primario? | Justificación | Se especifica en |
 |----|-------------|-------|------------|---------------|------------------|
-| **CU-01** | Consultar al asistente por texto con respuesta en streaming | Guía / Visitante | Sí | Corazón del sistema y uso más frecuente; ligado a OB-01, EAC-01, EAC-02 y EAC-05. Define el flujo de recuperación local (RAG) que reutilizan CU-02, CU-03 y CU-07 | |
-| **CU-02** | Identificar una especie o rasgo del paisaje por foto | Guía / Visitante | Sí | Riesgo y complejidad: imagen de cámara, embeddings de imagen y modelo multimodal en el mismo teléfono (EAC-04); riesgo de identificación errónea (R-02, EAC-05) | |
-| **CU-03** | Consultar al asistente por voz | Guía / Visitante | Sí | Mitiga R-04 (escribir con frío, lluvia o guantes); obliga a convivir con un segundo modelo en memoria (EAC-04, EAC-06) | |
-| **CU-04** | Escuchar la respuesta en voz alta | Guía / Visitante | No | Opción de preferencia; la voz del sistema Android lee la respuesta por frases sobre el streaming de CU-01 (ADR-003) | |
-| **CU-05** | Descargar modelos y paquetes de conocimiento | Guía | Sí | Sin esta descarga no hay sistema (RT-05, S-02); varios GB por Wi-Fi que pueden cortarse (EAC-03) | |
-| **CU-06** | Sincronizar la base de conocimiento con el backend | Sistema (al detectar conexión) / Guía | Sí | Mantiene el contenido validado al día (RN-01) y sube las reseñas de OB-02; riesgo de dejar la base local inconsistente (EAC-03) | |
-| **CU-07** | Generar un guion interpretativo según perfil e idioma | Guía | No | Importante para OB-04, pero reutiliza el flujo de CU-01 con una plantilla de perfil (infantil, general, especializado) | |
-| **CU-08** | Explorar rutas y las especies de cada ruta | Guía / Visitante | No | Consulta sobre datos ya sincronizados (sendero, alta montaña, ciclomontañismo, cicloturismo) | |
-| **CU-09** | Ver la ficha de una especie y su documento fuente | Guía / Visitante / Biólogo | No | Lectura de datos locales; la trazabilidad a la fuente se cubre con EAC-05 | |
-| **CU-10** | Registrar una reseña de la experiencia y del asistente | Visitante / Guía | No | Formulario local que se sube después por CU-06; alimenta OB-02 | |
-| **CU-11** | Traducir mensajes clave español ↔ inglés | Guía | No | Variante de CU-01 con instrucción de traducción; sin modelo adicional | |
-| **CU-12** | Consultar y borrar el historial de conversaciones | Guía / Visitante | No | CRUD local | |
-| **CU-13** | Configurar preferencias (voz, idioma, perfil, modelo) | Guía / Visitante | No | Datos locales; la elección de modelo se apoya en ADR-001 y ADR-009 | |
+| **CU-01** | Actualizar información: cargar los PDF vectorizados desde el backend | Visitante / Guía | Sí | Sin esta carga no hay chat. Es el único caso de uso con red (RT-01); debe ser todo o nada (EAC-03), verificar que el modelo de embeddings coincida y mostrar un mensaje amigable si no hay backend. Inicia la vigencia de 24 h (RN-02) | |
+| **CU-02** | Consultar al asistente por texto con respuesta en streaming y citas | Visitante / Guía | Sí | Corazón del sistema; ligado a EAC-01, EAC-02 y EAC-05. Define la recuperación local por bandas de similitud y el prompt del sistema (ADR-016) | |
+| **CU-03** | Vencer la vigencia: borrar la información, bloquear el chat, notificar y ofrecer desinstalar | Sistema (al cumplirse 24 h) / Visitante | Sí | Requisito de negocio RN-02; riesgo de que el chat siga disponible o de dejar datos (EAC-08). Toca notificaciones y desinstalación de Android (ADR-015) | |
 
-Este catálogo es la lista de funcionalidades del sistema. Cada caso de uso se especifica en la carpeta de `specs/` con su mismo número (CU-01 → `specs/001-...`); un caso de uso sin enlace en "Se especifica en" todavía no está especificado.
+Este catálogo es la lista de funcionalidades de la versión 1. Cada caso de uso se especifica en la carpeta de `specs/` con su mismo número (CU-01 → `specs/001-actualizar-informacion/`, CU-02 → `specs/002-consultar-texto/`, CU-03 → `specs/003-vencer-vigencia/`); un caso de uso sin enlace en "Se especifica en" todavía no está especificado.
+
+### Flujo resumido
+
+1. El usuario instala el APK. En el primer arranque se preparan los modelos que trae el APK (ADR-013).
+2. Sin carga vigente, la pantalla principal solo ofrece **Actualizar información** (el chat está bloqueado).
+3. CU-01: si el backend no responde, se muestra un mensaje amigable; si la carga sale completa, se guarda y empieza la vigencia de 24 h.
+4. CU-02: con la carga vigente, el usuario chatea sin conexión.
+5. CU-03: a las 24 h llega una notificación; el chat queda bloqueado y la app pregunta "¿Deseas desinstalar la aplicación?". **Sí** → se abre el diálogo de desinstalación de Android. **No** → se borra la información de los PDF y la app vuelve al paso 2.
 
 ## 2. Escenarios de atributos de calidad
 
@@ -28,149 +26,166 @@ Este catálogo es la lista de funcionalidades del sistema. Cada caso de uso se e
 
 | Parte | Pregunta | Contenido |
 |-------|----------|-----------|
-| **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | Un guía en el sendero |
-| **2. Estímulo** | ¿Qué ocurre? | Envía una pregunta de texto sobre una especie del catálogo |
-| **3. Artefacto** | ¿Sobre qué parte? | Caso de uso Consultar, Buscador vectorial y Motor de inferencia local |
-| **4. Entorno** | ¿En qué condiciones? | Modo avión, modelo por defecto cargado, dispositivo de referencia (Android 11+, 6 GB de RAM, gama media) |
-| **5. Respuesta** | ¿Qué debe hacer el sistema? | Recupera el contexto local y muestra la respuesta token a token mientras se genera, con opción de detenerla |
-| **6. Medida de respuesta** | ¿Cómo se verifica? | **Primer texto visible en 3 s o menos en el 90% de las consultas; al menos 8 tokens por segundo sostenidos; detener la generación responde en menos de 500 ms** |
+| **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | Un visitante en el sendero |
+| **2. Estímulo** | ¿Qué ocurre? | Envía una pregunta de texto cuya respuesta está en los documentos (banda ALTA) |
+| **3. Artefacto** | ¿Sobre qué parte? | Módulo Consulta, Buscador vectorial y Motor de inferencia local |
+| **4. Entorno** | ¿En qué condiciones? | Modo avión, carga vigente, modelos ya preparados, dispositivo de referencia (Android 11+, gama media; DT-08) |
+| **5. Respuesta** | ¿Qué debe hacer el sistema? | Recupera los fragmentos y muestra la respuesta token a token, con opción de detenerla |
+| **6. Medida de respuesta** | ¿Cómo se verifica? | **Primer texto visible en 3 s o menos en el 90% de las consultas; al menos 8 tokens por segundo sostenidos; detener responde en menos de 500 ms; respuestas MEDIA y BAJA visibles en ≤ 1 s** |
 
-**Escenario redactado.** En modo avión, con el modelo por defecto ya cargado, un guía pregunta por el frailejón. El asistente busca en la base local y empieza a mostrar la respuesta en 3 s o menos en el 90% de los casos, a no menos de 8 tokens por segundo, y la detiene en menos de medio segundo si el guía lo pide.
+**Escenario redactado.** En modo avión, un visitante pregunta por el frailejón. El asistente busca en los fragmentos locales y empieza a mostrar la respuesta en 3 s o menos en el 90% de los casos, a no menos de 8 tokens por segundo, y la detiene en menos de medio segundo si se lo piden.
 
-**Traza:** OB-01, RT-03, CU-01, CU-03
+**Traza:** OB-01, RT-03, CU-02
 
 ### EAC-02: Disponibilidad (operación sin conexión)
 
 | Parte | Pregunta | Contenido |
 |-------|----------|-----------|
-| **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | Un guía en una zona sin señal |
-| **2. Estímulo** | ¿Qué ocurre? | Usa cualquier función de campo: chat, foto, voz, rutas, fichas o reseña |
+| **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | Un visitante en una zona sin señal |
+| **2. Estímulo** | ¿Qué ocurre? | Usa el chat |
 | **3. Artefacto** | ¿Sobre qué parte? | La aplicación completa |
-| **4. Entorno** | ¿En qué condiciones? | Sin red durante todo el recorrido, con los paquetes ya descargados |
-| **5. Respuesta** | ¿Qué debe hacer el sistema? | Atiende la función sin intentar conexiones externas; lo que requiere red (sincronizar, subir reseñas) queda en espera sin bloquear |
-| **6. Medida de respuesta** | ¿Cómo se verifica? | **100% de los casos de uso CU-01 a CU-04 y CU-07 a CU-13 funcionan en modo avión; 0 llamadas de red desde esos casos de uso** |
+| **4. Entorno** | ¿En qué condiciones? | Sin red durante todo el recorrido, con una carga vigente |
+| **5. Respuesta** | ¿Qué debe hacer el sistema? | Atiende el chat sin intentar conexiones; el vencimiento (CU-03) también funciona sin red |
+| **6. Medida de respuesta** | ¿Cómo se verifica? | **CU-02 y CU-03 funcionan al 100% en modo avión; 0 llamadas de red fuera de CU-01** |
 
-**Escenario redactado.** Un guía activa el modo avión y recorre la laguna del Otún usando el chat, la cámara, la voz, las fichas y la reseña. Todo funciona sin red, y la reseña queda pendiente para subirse después.
+**Escenario redactado.** Un visitante activa el modo avión y recorre la laguna del Otún usando el chat. Todo funciona sin red; ninguna pantalla intenta conectarse salvo cuando pulsa "Actualizar información".
 
-**Traza:** OB-03, RT-01, CU-01 a CU-04, CU-07 a CU-13
+**Traza:** OB-03, RT-01, CU-02, CU-03
 
-### EAC-03: Fiabilidad (recuperabilidad de descargas y sincronización)
+### EAC-03: Fiabilidad (carga recuperable)
 
 | Parte | Pregunta | Contenido |
 |-------|----------|-----------|
-| **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | La red Wi-Fi o el sistema operativo |
-| **2. Estímulo** | ¿Qué ocurre? | Se corta la conexión o se cierra la app a mitad de la descarga de un modelo o de una sincronización |
-| **3. Artefacto** | ¿Sobre qué parte? | Gestor de descargas, Sincronizador y base SQLite local |
-| **4. Entorno** | ¿En qué condiciones? | Antes de salir a campo, con Wi-Fi inestable |
-| **5. Respuesta** | ¿Qué debe hacer el sistema? | Retoma la descarga desde donde iba, verifica el archivo antes de usarlo y aplica cada página de cambios en una transacción |
-| **6. Medida de respuesta** | ¿Cómo se verifica? | **0 modelos corruptos en uso (100% verificados con sha256); la descarga se retoma sin empezar de cero; la base local nunca queda con una página aplicada a medias; 0 reseñas perdidas o duplicadas** |
+| **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | La red del punto de acceso o el sistema operativo |
+| **2. Estímulo** | ¿Qué ocurre? | El backend no responde, informa otro modelo de embeddings, o la conexión se corta o la app se cierra a mitad de la carga |
+| **3. Artefacto** | ¿Sobre qué parte? | Módulo Actualización, ClienteBackend y base SQLite local |
+| **4. Entorno** | ¿En qué condiciones? | Antes del recorrido, conectado (o no) al punto de acceso del computador |
+| **5. Respuesta** | ¿Qué debe hacer el sistema? | Muestra un mensaje amigable que dice qué hacer; aplica la carga completa o no aplica nada; conserva la base y la vigencia anteriores si la carga falla |
+| **6. Medida de respuesta** | ¿Cómo se verifica? | **Sin backend, el mensaje aparece en ≤ 5 s; 0 cargas aplicadas a medias en 10 cortes provocados; tras un fallo, los documentos y `expira_en` anteriores no cambian; 0 cargas aceptadas con un modelo de embeddings distinto** |
 
-**Escenario redactado.** Mientras baja el modelo de 1,5 GB por el Wi-Fi del hotel, la señal se corta. Al volver, la descarga sigue desde donde quedó, el archivo se verifica antes de usarse, y la sincronización pendiente se aplica por páginas completas o no se aplica.
+**Escenario redactado.** Mientras baja los fragmentos, el visitante sale del alcance del punto de acceso. La app avisa que no pudo completar la carga, y la información que ya tenía sigue igual, con la misma hora de vencimiento.
 
-**Traza:** OB-03, RT-05, S-02, CU-05, CU-06, CU-10
+**Traza:** OB-03, RT-05, S-02, CU-01
 
 ### EAC-04: Eficiencia de desempeño (utilización de recursos)
 
 | Parte | Pregunta | Contenido |
 |-------|----------|-----------|
-| **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | Un guía |
-| **2. Estímulo** | ¿Qué ocurre? | Hace una consulta por voz y, enseguida, una por foto |
-| **3. Artefacto** | ¿Sobre qué parte? | Gestor de modelos: Motor de inferencia, Transcriptor y Codificador de imagen |
+| **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | Un visitante |
+| **2. Estímulo** | ¿Qué ocurre? | Hace 30 consultas seguidas |
+| **3. Artefacto** | ¿Sobre qué parte? | Gestor de modelos, Motor de inferencia y base local |
 | **4. Entorno** | ¿En qué condiciones? | Dispositivo de referencia, temperatura baja, batería al 50% |
-| **5. Respuesta** | ¿Qué debe hacer el sistema? | Mantiene en memoria solo los modelos necesarios, libera el transcriptor después de usarlo y elige el tamaño de modelo según la RAM del equipo |
-| **6. Medida de respuesta** | ¿Cómo se verifica? | **Memoria pico de la app ≤ 4 GB (RT-02); 0 cierres por falta de memoria en una sesión de prueba de 30 consultas mixtas; consumo ≤ 15% de batería por hora de uso moderado (una consulta cada 3 minutos)** |
+| **5. Respuesta** | ¿Qué debe hacer el sistema? | Mantiene los dos modelos residentes sin crecer en memoria y los libera en segundo plano |
+| **6. Medida de respuesta** | ¿Cómo se verifica? | **Memoria pico de la app ≤ 1,5 GB (valor a confirmar con la medición de DT-02); 0 cierres en 30 consultas; consumo ≤ 10% de batería por hora de uso moderado (una consulta cada 3 minutos)** |
 
-**Escenario redactado.** En el dispositivo de referencia, un guía hace 30 consultas seguidas entre voz, foto y texto. La app no pasa de 4 GB de memoria, no se cierra, y en una hora de uso moderado gasta como máximo el 15% de la batería.
+**Escenario redactado.** En el dispositivo de referencia, un visitante hace 30 consultas seguidas. La app no pasa de 1,5 GB de memoria, no se cierra y en una hora de uso moderado gasta como máximo el 10% de la batería.
 
-**Traza:** RT-02, R-01, R-03, CU-02, CU-03
+**Traza:** RT-02, R-01, R-03, CU-02
 
 ### EAC-05: Adecuación funcional (veracidad de las respuestas)
 
 | Parte | Pregunta | Contenido |
 |-------|----------|-----------|
 | **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | Un visitante |
-| **2. Estímulo** | ¿Qué ocurre? | Pregunta por una especie o un dato que no está en la base local, o envía la foto de una planta que no está en el catálogo |
-| **3. Artefacto** | ¿Sobre qué parte? | Caso de uso Consultar, Buscador vectorial y plantilla de instrucciones del modelo |
-| **4. Entorno** | ¿En qué condiciones? | Operación normal sin conexión |
-| **5. Respuesta** | ¿Qué debe hacer el sistema? | Responde solo con el contexto recuperado y cita la ficha o el documento fuente; si la similitud no supera el umbral, dice que no lo encontró en la base validada en lugar de inventar |
-| **6. Medida de respuesta** | ¿Cómo se verifica? | **En el set de prueba de 50 preguntas validado por el biólogo: ≥ 90% de las respuestas dentro del catálogo citan su fuente; ≥ 95% de las preguntas fuera del catálogo reciben la respuesta "no encontrado"; en identificación por foto, el 100% de las especies propuestas existen en el catálogo** |
+| **2. Estímulo** | ¿Qué ocurre? | Pregunta algo que está en los documentos, algo cercano pero sin dato, algo ajeno al parque |
+| **3. Artefacto** | ¿Sobre qué parte? | Módulo Consulta, Buscador vectorial y prompt del sistema ([prompt-sistema.md](prompt-sistema.md)) |
+| **4. Entorno** | ¿En qué condiciones? | Operación normal sin conexión, carga vigente |
+| **5. Respuesta** | ¿Qué debe hacer el sistema? | Banda ALTA: responde solo con los fragmentos y cita documento y página. Banda MEDIA: recomienda consultar al guía. Banda BAJA: dice que no encontró la información. Tema ajeno: dice que solo responde sobre el parque |
+| **6. Medida de respuesta** | ¿Cómo se verifica? | **En un set de prueba de 50 preguntas validado por un especialista: ≥ 90% de las respuestas ALTA citan una fuente correcta; ≥ 95% de las preguntas sin respuesta en los documentos reciben el texto de MEDIA o BAJA; ≥ 95% de las preguntas ajenas no reciben una respuesta de contenido; 0 respuestas ALTA con datos que no estén en los fragmentos** |
 
-**Escenario redactado.** Un visitante pregunta por una especie que no existe en el parque. El asistente responde que no la encuentra en la información validada, en lugar de inventar datos. Cuando la especie sí está, la respuesta cita su ficha o el documento del que sale.
+**Escenario redactado.** Un visitante pregunta quién ganó el último mundial. El asistente responde que no encontró esa información en los documentos del recorrido. Cuando pregunta qué come el zorro rojo, responde en pocas frases y cita `Fauna_v1.pdf, página 1`.
 
-**Traza:** R-02, RN-01, CU-01, CU-02, CU-09
+**Traza:** R-02, RN-01, CU-02
 
 ### EAC-06: Capacidad de interacción (operabilidad en campo)
 
 | Parte | Pregunta | Contenido |
 |-------|----------|-----------|
-| **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | Un guía con guantes, bajo sol intenso o llovizna |
-| **2. Estímulo** | ¿Qué ocurre? | Quiere preguntar algo sin escribir |
-| **3. Artefacto** | ¿Sobre qué parte? | Pantalla de chat, Transcriptor y Sintetizador |
+| **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | Un visitante bajo sol intenso o llovizna |
+| **2. Estímulo** | ¿Qué ocurre? | Quiere actualizar la información o hacer una pregunta |
+| **3. Artefacto** | ¿Sobre qué parte? | Pantallas de inicio y de chat |
 | **4. Entorno** | ¿En qué condiciones? | Campo, una mano ocupada |
-| **5. Respuesta** | ¿Qué debe hacer el sistema? | Ofrece un botón grande de "mantener para hablar", muestra la transcripción antes de enviarla y puede leer la respuesta en voz alta |
-| **6. Medida de respuesta** | ¿Cómo se verifica? | **Transcripción de 10 s de audio en ≤ 3 s; botones de al menos 56 dp; contraste de texto ≥ 7:1 (WCAG AAA); el 90% de los guías de la prueba hace una consulta por voz sin ayuda en su primer intento** |
+| **5. Respuesta** | ¿Qué debe hacer el sistema? | Botones grandes, texto legible al sol, estado de la vigencia siempre visible ("Disponible hasta las 15:04") |
+| **6. Medida de respuesta** | ¿Cómo se verifica? | **Botones de al menos 56 dp; contraste de texto ≥ 7:1 (WCAG AAA); el 90% de los usuarios de la prueba carga la información y hace una pregunta sin ayuda en su primer intento** |
 
-**Escenario redactado.** Con guantes y bajo el sol, un guía mantiene presionado el botón grande, pregunta por voz, ve la transcripción en menos de 3 s, la envía y escucha la respuesta. El 90% de los guías de la prueba lo logra al primer intento.
+**Escenario redactado.** Bajo el sol, un visitante pulsa el botón grande "Actualizar información", ve hasta qué hora estará disponible el asistente y hace su primera pregunta sin ayuda.
 
-**Traza:** R-04, OB-01, CU-03, CU-04
+**Traza:** R-04, OB-01, CU-01, CU-02
 
 ### EAC-07: Mantenibilidad (modificabilidad del modelo)
 
 | Parte | Pregunta | Contenido |
 |-------|----------|-----------|
 | **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | El equipo de IA |
-| **2. Estímulo** | ¿Qué ocurre? | Sale una versión mejor de un modelo (otro GGUF de Qwen o un modelo de embeddings nuevo) |
-| **3. Artefacto** | ¿Sobre qué parte? | Manifest de paquetes, adaptadores de los puertos de IA |
-| **4. Entorno** | ¿En qué condiciones? | Con la app instalada en los teléfonos de los guías |
-| **5. Respuesta** | ¿Qué debe hacer el sistema? | Admite el cambio como una entrada nueva del manifest, sin tocar `dominio/` ni los casos de uso |
-| **6. Medida de respuesta** | ¿Cómo se verifica? | **Cambio del modelo de lenguaje sin publicar un APK nuevo y sin tocar `dominio/` ni `aplicacion/`; cambio de modelo de embeddings con re-sincronización de vectores marcada por `modelo_embedding`** |
+| **2. Estímulo** | ¿Qué ocurre? | Sale una versión mejor del modelo de lenguaje, o el backend cambia de modelo de embeddings |
+| **3. Artefacto** | ¿Sobre qué parte? | Assets del APK, constante de modelos, Adaptador llama.rn |
+| **4. Entorno** | ¿En qué condiciones? | Desarrollo |
+| **5. Respuesta** | ¿Qué debe hacer el sistema? | Admite el cambio reemplazando el GGUF, la constante de modelos y, si hace falta, el adaptador, sin tocar `dominio/` ni `aplicacion/` |
+| **6. Medida de respuesta** | ¿Cómo se verifica? | **El cambio de modelo no modifica archivos de `src/dominio/` ni de `src/aplicacion/`; un APK con modelo de embeddings distinto al del backend rechaza la carga (EAC-03)** |
 
-**Escenario redactado.** El equipo de IA publica un GGUF mejor. Los guías lo descargan desde la app como un paquete nuevo, sin actualizar el APK, y el cambio no toca el dominio ni los casos de uso.
+**Escenario redactado.** El equipo de IA cambia LFM2.5-350M por una versión nueva. El cambio solo toca el asset, la constante y el adaptador, y se publica en un APK nuevo.
 
-**Traza:** RT-05, CU-05, CU-13, stakeholder Ingeniero de IA
+**Traza:** RT-05, CU-01, CU-02, stakeholder Ingeniero de IA
+
+### EAC-08: Seguridad de la información (vigencia de 24 horas)
+
+| Parte | Pregunta | Contenido |
+|-------|----------|-----------|
+| **1. Fuente del estímulo** | ¿Quién o qué lo provoca? | El paso del tiempo |
+| **2. Estímulo** | ¿Qué ocurre? | Se cumplen 24 h desde la última carga exitosa |
+| **3. Artefacto** | ¿Sobre qué parte? | Módulo Vigencia, Notificador, Desinstalador y base local |
+| **4. Entorno** | ¿En qué condiciones? | App abierta, en segundo plano o cerrada; con o sin red |
+| **5. Respuesta** | ¿Qué debe hacer el sistema? | Muestra una notificación, bloquea el chat, pregunta si desea desinstalar; con "Sí" abre el diálogo de desinstalación de Android; con "No" borra documentos y conversaciones y vuelve a pedir una carga |
+| **6. Medida de respuesta** | ¿Cómo se verifica? | **Con un reloj de prueba: 0 consultas aceptadas después de `expira_en`; la notificación se muestra a ±1 minuto de `expira_en` con la app cerrada (con permiso de notificaciones); tras "No", 0 filas en `documento`, `fragmento`, `vec_fragmento`, `conversacion`, `mensaje` y `cita`; tras "Sí", se abre el diálogo de desinstalación del sistema** |
+
+**Escenario redactado.** Un visitante cargó la información a las 9:00. Al día siguiente a las 9:00 recibe una notificación. Abre la app: el chat ya no está disponible y la app le pregunta si quiere desinstalarla. Responde que no; la información se borra y la app le ofrece volver a cargarla.
+
+**Traza:** RN-02, CU-03, PA-08
 
 ## 3. Restricciones
 
 | ID | Restricción | Tipo | Origen | Impacto arquitectónico esperado |
 |----|-------------|------|--------|---------------------------------|
-| **RT-01** | Inferencia y consulta 100% locales; sin APIs en la nube durante la guianza | Técnica | Arquitectura de Software | Obliga a llevar en el teléfono el modelo de lenguaje, el transcriptor, los embeddings y la base vectorial (ADR-001, ADR-002, ADR-005); la red solo se usa para descargar y sincronizar (ADR-006, ADR-007) |
-| **RT-02** | Paquete total ≤ 3,5 GB y ≤ 4 GB de RAM | Técnica | Ingeniería de IA y Desarrollo Móvil | Modelos cuantizados (Q4), un solo modelo pesado en memoria a la vez y tamaño de modelo según la RAM (ADR-001, ADR-009) |
-| **RT-03** | Latencia hasta el primer token ≤ 3 s | Técnica | Operaciones de campo y UX | Respuesta en streaming, contexto recuperado acotado y modelo precargado al abrir el chat (ADR-004, ADR-009, ADR-010) |
-| **RT-04** | Solo Android 11+ ARM64 (APK) | Técnica | Equipo del proyecto | Librerías nativas solo para Android; build con EAS; sin iOS en las vistas (ADR-011) |
-| **RT-05** | Modelos y paquetes se descargan después de instalar el APK | Técnica | Equipo del proyecto | APK liviano; manifest de paquetes, gestor de descargas reanudables con verificación (ADR-007) |
-| **RN-01** | Todo contenido debe estar validado por especialistas antes de distribuirse | Negocio | Administración del área protegida | El móvil solo recibe contenido publicado como validado; cada ficha y fragmento conserva su fuente (ADR-006, ADR-010) |
+| **RT-01** | Inferencia y consulta 100% locales; sin APIs en la nube durante el recorrido | Técnica | Arquitectura de Software | Los dos modelos y la base vectorial van en el teléfono (ADR-012, ADR-014); la red solo se usa en CU-01 contra el backend local |
+| **RT-02** | Paquete total ≤ 3,5 GB y ≤ 4 GB de RAM | Técnica | Ingeniería de IA y Desarrollo Móvil | Con LFM2.5-350M y MiniLM queda holgada; EAC-04 fija una meta más estricta (ADR-014) |
+| **RT-03** | Latencia hasta el primer token ≤ 3 s | Técnica | Operaciones de campo y UX | Streaming, contexto ≤ 1.500 tokens y modelos precargados al abrir el chat (ADR-004, ADR-014, ADR-016) |
+| **RT-04** | Solo Android 11+ ARM64 (APK) | Técnica | Equipo del proyecto | Librerías nativas solo para Android; build con EAS (ADR-011) |
+| **RT-05** | Los modelos viajan dentro del APK; el conocimiento se carga desde el backend local después de instalar | Técnica | Equipo del proyecto | Assets GGUF copiados al almacenamiento interno en el primer arranque (ADR-013); reemplaza la redacción original de descargar modelos por Wi-Fi |
+| **RN-01** | Todo contenido debe estar validado por especialistas antes de distribuirse | Negocio | Administración del área protegida | El administrador solo carga en el backend PDF validados; cada fragmento conserva documento y página (ADR-016) |
+| **RN-02** | La información recibida vence 24 h después de la última carga exitosa | Negocio | [CONTEXT.md](../CONTEXT.md), sección 5.5 | Fecha de vencimiento persistida, notificación programada, bloqueo del chat, borrado y opción de desinstalar (ADR-015) |
 
 ## 4. Preocupaciones arquitectónicas
 
 | ID | Preocupación | Qué hay que decidir | Por qué importa en este sistema |
 |----|--------------|---------------------|---------------------------------|
-| **PA-01** | Estructura general | Cómo se divide el código de la app y cómo se aíslan las librerías nativas de IA | Las librerías de IA cambian rápido (EAC-07); el dominio no debe depender de ellas |
-| **PA-02** | Memoria y ciclo de vida de los modelos | Qué modelos se cargan, cuándo se liberan y cuál se elige según el equipo | RT-02, EAC-04, R-01, R-03 |
-| **PA-03** | Persistencia local y vectores | Dónde se guardan datos, vectores, imágenes y PDF en el teléfono | Búsqueda por similitud sin servidor (RT-01); espejo del PostgreSQL externo |
-| **PA-04** | Sincronización | Cómo se bajan los cambios y se suben las reseñas sin perder ni duplicar | EAC-03, OB-02, RN-01 |
-| **PA-05** | Manejo de errores | Estrategia ante modelo no descargado, memoria insuficiente, permiso de micrófono o cámara negado, descarga corrupta | La app no debe cerrarse en campo (EAC-02, EAC-04) |
-| **PA-06** | Configuración | Dónde viven la URL del backend, el catálogo de modelos y los umbrales de similitud | `.env` para la URL; manifest para los modelos (EAC-07) |
-| **PA-07** | Trazabilidad de fuentes | Cómo cada respuesta queda ligada a la ficha o al PDF del que sale | EAC-05, RN-01 |
-| **PA-08** | Privacidad | Qué datos salen del teléfono | Fotos, audio y conversaciones no salen del dispositivo; solo las reseñas, con consentimiento |
-| **PA-09** | Construcción y distribución | Cómo se compila el APK con módulos nativos | Expo Go no incluye llama.rn ni whisper.rn: se necesita development build (RT-04) |
+| **PA-01** | Estructura general | Cómo se divide el código y cómo se aíslan las librerías nativas | Los modelos cambian (EAC-07); el dominio no debe depender de ellos |
+| **PA-02** | Memoria y ciclo de vida de los modelos | Cuándo se preparan, cargan y liberan | EAC-04, R-01 |
+| **PA-03** | Persistencia local y vectores | Cómo se guardan documentos, fragmentos y vectores | Búsqueda por similitud sin servidor (RT-01) |
+| **PA-04** | Carga desde el backend | Cómo se baja todo sin dejar la base a medias y con el modelo correcto | EAC-03 |
+| **PA-05** | Manejo de errores | Backend ausente, modelo distinto, modelo no preparado, memoria insuficiente, notificaciones denegadas | La app no debe cerrarse y debe decir qué hacer |
+| **PA-06** | Configuración | Dónde viven la URL del backend, los umbrales y la duración de la vigencia | `.env` para la URL; constantes versionadas para umbrales y 24 h |
+| **PA-07** | Trazabilidad de fuentes | Cómo cada respuesta queda ligada al documento y la página | EAC-05, RN-01 |
+| **PA-08** | Privacidad | Qué datos salen del teléfono y cuándo se borran | Nada sale del teléfono; todo lo recibido se borra al vencer (RN-02) |
+| **PA-09** | Construcción y distribución | Cómo se compila el APK con módulos nativos y modelos incluidos | Expo Go no incluye llama.rn (ADR-011, ADR-013) |
+| **PA-10** | Vigencia | Cómo se garantiza el bloqueo a las 24 h con la app cerrada | EAC-08, RN-02 |
 
 ## 5. Matriz de priorización
 
 ### Alta importancia, alta dificultad: atender primero
 
-CU-01, CU-02, CU-05, EAC-01, EAC-04, EAC-05, RT-01, RT-02, RT-03, PA-02, PA-03
+CU-02, EAC-01, EAC-05, EAC-08, RT-01, RT-03, PA-02, PA-03, PA-10
 
 ### Alta importancia, baja dificultad: hacer ya
 
-CU-03, CU-06, EAC-02, EAC-03, EAC-06, RT-04, RT-05, RN-01, PA-01, PA-04, PA-07, PA-08, PA-09
+CU-01, CU-03, EAC-02, EAC-03, RT-04, RT-05, RN-01, RN-02, PA-01, PA-04, PA-07, PA-08, PA-09
 
 ### Baja importancia, baja dificultad: hacer si sobra tiempo
 
-CU-04, CU-08, CU-09, CU-10, CU-12, CU-13, PA-05, PA-06
+EAC-06, PA-05, PA-06
 
 ### Baja importancia, alta dificultad: cuestionar
 
-CU-07, CU-11, EAC-07
+EAC-04 (la meta de batería), EAC-07
 
 ## 6. Escenarios (+1)
 
@@ -178,10 +193,21 @@ Inventario de escenarios que se diagraman. Un escenario sin caso de uso primario
 
 | ID | Escenario | Origen | Por qué es escenario | Archivo en secuencia/ |
 |----|-----------|--------|----------------------|------------------------|
-| **ESC-01** | Consultar por texto | CU-01 | Caso de uso primario. Muestra la recuperación local, el streaming y la respuesta "no encontrado": cubre EAC-01, EAC-02 y EAC-05 | [cu01-consultar-texto.puml](diagramas/secuencia/cu01-consultar-texto.puml) |
-| **ESC-02** | Identificar por foto | CU-02 | Caso de uso primario. Embedding de imagen, búsqueda kNN y modelo multimodal con candidatos del catálogo (ADR-002): cubre EAC-04 y EAC-05 | [cu02-identificar-foto.puml](diagramas/secuencia/cu02-identificar-foto.puml) |
-| **ESC-03** | Consultar por voz | CU-03, CU-04 | Caso de uso primario. Transcripción, liberación del transcriptor y lectura por frases (ADR-003, ADR-009): cubre EAC-04 y EAC-06 | [cu03-consultar-voz.puml](diagramas/secuencia/cu03-consultar-voz.puml) |
-| **ESC-04** | Descargar paquetes | CU-05 | Caso de uso primario. Descarga reanudable con verificación sha256 solo por Wi-Fi (ADR-007): cubre EAC-03 | [cu05-descargar-paquetes.puml](diagramas/secuencia/cu05-descargar-paquetes.puml) |
-| **ESC-05** | Sincronizar | CU-06, CU-10 | Caso de uso primario. Pull paginado por cursor y envío idempotente de reseñas (ADR-006): cubre EAC-03 | [cu06-sincronizar.puml](diagramas/secuencia/cu06-sincronizar.puml) |
+| **ESC-01** | Actualizar información | CU-01 | Caso de uso primario. Verificación del backend y del modelo, descarga y transacción todo o nada, inicio de la vigencia: cubre EAC-03 | [cu01-actualizar-informacion.puml](diagramas/secuencia/cu01-actualizar-informacion.puml) |
+| **ESC-02** | Consultar por texto | CU-02 | Caso de uso primario. Recuperación local, bandas, streaming y citas: cubre EAC-01, EAC-02 y EAC-05 | [cu02-consultar-texto.puml](diagramas/secuencia/cu02-consultar-texto.puml) |
+| **ESC-03** | Vencer la vigencia | CU-03 | Caso de uso primario. Notificación, bloqueo, borrado y desinstalación: cubre EAC-08 | [cu03-vencer-vigencia.puml](diagramas/secuencia/cu03-vencer-vigencia.puml) |
 
-EAC-01 a EAC-06 quedan dentro de los cinco escenarios. EAC-07 (modificabilidad) no tiene comportamiento en ejecución: se verifica revisando que el cambio de modelo solo agregue una entrada al manifest y no toque `dominio/` ni `aplicacion/`.
+EAC-01 a EAC-03, EAC-05 y EAC-08 quedan dentro de los tres escenarios. EAC-04 se mide con la sesión de 30 consultas de ESC-02. EAC-06 se verifica con la prueba de usuarios. EAC-07 no tiene comportamiento en ejecución: se verifica revisando que el cambio de modelo no toque `dominio/` ni `aplicacion/`.
+
+## 7. Versiones futuras
+
+No se especifican ni se implementan en la versión 1 ([ADR-017](adr/ADR-017-alcance-version-1.md)). No tienen número de caso de uso para no ocupar carpetas de `specs/`; se numerarán cuando entren al alcance.
+
+| Funcionalidad | Notas para cuando se retome |
+|---------------|-----------------------------|
+| Consulta por foto (imagen→imagen, texto→imagen) | Modelo elegido: **MobileCLIP2**. Requiere que el backend vectorice imágenes y las entregue; decisión anterior en [ADR-002](adr/ADR-002-imagenes-e-identificacion.md) (pospuesto) |
+| Consulta por voz y lectura en voz alta | [ADR-003](adr/ADR-003-voz-entrada-salida.md) (pospuesto): whisper.rn y expo-speech |
+| Reformulación de preguntas largas antes de vectorizar | [CONTEXT.md](../CONTEXT.md), sección 5.3 |
+| Respuestas en inglés y traducción español–inglés | — |
+| Historial de conversaciones navegable | En la versión 1 los mensajes se guardan solo durante la vigencia |
+| Rutas, fichas de especies, reseñas, guiones por perfil | Visión original ([vision.md](vision.md)); OB-02 y OB-04 |

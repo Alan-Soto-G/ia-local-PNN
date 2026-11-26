@@ -1,0 +1,88 @@
+@startuml cu01
+title ESC-01: CU-01 Actualizar información (EAC-03; ADR-012, ADR-015)
+skinparam backgroundColor #1E3B2F
+skinparam defaultFontName Arial
+skinparam defaultFontColor white
+skinparam titleFontColor white
+skinparam shadowing false
+skinparam ArrowColor white
+skinparam ArrowFontColor white
+skinparam ArrowFontSize 11
+skinparam BoxPadding 10
+skinparam wrapWidth 230
+skinparam maxMessageSize 230
+skinparam responseMessageBelowArrow true
+skinparam sequenceMessageAlign left
+skinparam NoteTextAlignment left
+skinparam SequenceGroupBodyBackgroundColor transparent
+<style>
+participant {
+  Padding 25
+}
+</style>
+skinparam sequence {
+  LifeLineBorderColor white
+  LifeLineBackgroundColor #548235
+  ParticipantBackgroundColor #548235
+  ParticipantBorderColor white
+  ParticipantFontColor white
+  ActorBackgroundColor #548235
+  ActorBorderColor white
+  ActorFontColor white
+  GroupBackgroundColor #2E5E4A
+  GroupBorderColor white
+  GroupFontColor white
+  BoxBackgroundColor #2E5E4A
+}
+skinparam note {
+  BackgroundColor #FFF2CC
+  BorderColor #C00000
+  FontColor #C00000
+}
+
+actor "Visitante / Guía" as U
+participant "Inicio\n(pantalla)" as UI
+participant "Módulo Actualización" as A
+participant "Gestor de modelos" as G
+participant "Backend RAG\n(computador)" as B
+participant "Base local\n(SQLite + sqlite-vec)" as DB
+participant "Módulo Vigencia" as V
+
+U -> UI : toca "Actualizar información"
+UI -> A : actualizar()
+A -> B : GET /api/health/db (límite 5 s)
+alt sin respuesta o status distinto de ok
+  B --> A : error / tiempo agotado
+  A --> UI : BackendNoDisponible
+  UI --> U : "No encontramos el punto de información del parque. Conéctate a su red Wi-Fi e inténtalo de nuevo."
+  note right of UI : La base y la vigencia anteriores no cambian (EAC-03)
+else backend disponible
+  B --> A : embedding_model, dimensions
+  A -> G : modelo de embeddings esperado
+  G --> A : paraphrase-multilingual-MiniLM-L12-v2, 384
+  alt el modelo no coincide
+    A --> UI : ModeloEmbeddingIncompatible
+    UI --> U : "La información del punto no es compatible con esta versión de la app."
+  else coincide
+    A -> B : GET /api/documents
+    B --> A : lista de documentos (todas las versiones)
+    A -> A : se queda con la versión más alta de cada nombre
+    loop por cada documento
+      A -> B : GET /api/documents/{id}/chunks?include_embeddings=true
+      B --> A : fragmentos con página, texto y vector
+    end
+    A -> DB : BEGIN; borrar conocimiento y conversaciones; insertar lo nuevo; carga = vigente
+    alt falla la red o la escritura en cualquier punto
+      A -> DB : ROLLBACK
+      A --> UI : CargaIncompleta
+      UI --> U : "No se pudo completar la carga. Tu información anterior sigue disponible." (si la había)
+    else todo correcto
+      A -> DB : COMMIT
+      A -> V : iniciar(cargado_en)
+      V -> V : expira_en = cargado_en + 24 h; cancela el aviso anterior y programa uno nuevo
+      A --> UI : carga lista
+      UI --> U : "Información lista. Disponible hasta mañana a las 15:04."
+    end
+  end
+end
+@enduml

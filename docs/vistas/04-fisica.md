@@ -1,10 +1,10 @@
 # Vista física: diagrama de despliegue
 
-> Dónde se ejecuta cada contenedor. Diagrama: [04-fisica.puml](../diagramas/04-fisica.puml). Para desarrolladores móviles y para quien prepare los teléfonos de los guías. Notación: diagrama UML de despliegue (nodos, componentes y conexiones).
+> Dónde se ejecuta cada contenedor. Diagrama: [04-fisica.puml](../diagramas/04-fisica.puml). Para desarrolladores móviles y para quien prepare el computador administrador. Notación: diagrama UML de despliegue (nodos, componentes y conexiones).
 
 ## 1. Presentación principal
 
-Todo el sistema corre en un único nodo: el teléfono Android del guía. Dentro del proceso de la app viven la App móvil y los tres motores nativos de IA. En el almacenamiento interno de la app viven la base local, los modelos y los archivos multimedia. Fuera del teléfono solo hay redes Wi-Fi que se usan antes de salir a campo, y los dos sistemas externos a los que se llega por ellas.
+La app corre en un único nodo: el teléfono Android del visitante o del guía. Dentro del proceso de la app viven la App móvil y el motor nativo llama.rn. En el almacenamiento interno de la app viven la base local y la copia de los modelos. Fuera del teléfono está el computador administrador, al que solo se llega conectándose a su punto de acceso Wi-Fi, sin Internet, antes del recorrido.
 
 Diagrama: [diagramas/04-fisica.puml](../diagramas/04-fisica.puml)
 
@@ -12,37 +12,35 @@ Diagrama: [diagramas/04-fisica.puml](../diagramas/04-fisica.puml)
 
 | Nodo | Contenedores que aloja | Características | Conexiones |
 |------|------------------------|-----------------|------------|
-| Teléfono Android del guía | Todos los contenedores del sistema | Android 11+, ARM64 (RT-04). Referencia: 6 GB de RAM y gama media; con menos de 6 GB se usa el modelo 0.8B, con 8 GB o más se puede elegir el 4B (ADR-001, ADR-009) | Wi-Fi solo para CU-05 y CU-06 |
-| Proceso de la app | App móvil (Hermes), Motor de inferencia, Transcriptor, Codificador de imagen | APK generado con EAS Build, New Architecture (ADR-011). Los motores nativos usan CPU y, si el equipo lo soporta, GPU (Vulkan u OpenCL en llama.cpp) o NNAPI (ONNX) | Puente nativo dentro del proceso |
-| Almacenamiento interno de la app | Base local, carpeta `modelos/`, carpeta `media/` | Privado de la app. Presupuesto ≤ 3,5 GB en total (RT-02): APK de menos de 100 MB, modelos de 1,5 a 3 GB según el tamaño elegido, base y medios de unos 300 MB | Solo el proceso de la app |
-| Motor de voz de Android | Síntesis de voz | Del sistema. Funciona sin red si las voces es-CO / es-ES / en-US están instaladas; la app avisa si no lo están (ADR-003) | App móvil a través de expo-speech |
-| Wi-Fi (fuera de campo) | — | Alojamiento, oficina o centro de visitantes del parque. Las descargas grandes se bloquean con datos móviles (ADR-007) | Hugging Face Hub y Backend |
-| Hugging Face Hub (externo) | Archivos de modelos | Descarga HTTPS con rango de bytes para reanudar | Teléfono |
-| Backend de conocimiento (externo) | Cambios, manifest, recepción de reseñas | No definido; propio o Supabase ([qué se espera](../backend-esperado.md)) | Teléfono, JSON / HTTPS |
+| Teléfono Android | Todos los contenedores de la app | Android 11+, ARM64 (RT-04). Referencia: gama media (DT-08) | Wi-Fi hacia el punto de acceso, solo en CU-01 |
+| Proceso de la app | App móvil (Hermes) y Motor de inferencia | APK generado con EAS Build, New Architecture (ADR-011). llama.cpp usa CPU y, si el equipo lo soporta, GPU | Puente nativo dentro del proceso |
+| Almacenamiento interno de la app | Base local, carpeta `modelos/` | Privado de la app. Unos 0,5 GB de modelos copiados (más los del APK) y unos pocos MB de base | Solo el proceso de la app |
+| Servicios de Android | Notificaciones e instalador de paquetes | Del sistema; funcionan sin red (ADR-015) | App móvil |
+| Computador administrador (externo) | Backend RAG: FastAPI + SQLite + sqlite-vec ([API.md](../../API.md)) | Windows con "Zona con cobertura inalámbrica móvil" activa; IP fija `192.168.137.1`, puerto 8000; escucha solo en `127.0.0.1` y en la IP del punto de acceso | Teléfonos conectados a su punto de acceso, HTTP |
+| Red del punto de acceso | — | Wi-Fi local generado por el computador; no requiere Internet. Resuelve `rag.home.arpa` y `<equipo>.mshome.net` | Teléfono ↔ computador |
 
-Tamaños aproximados que se deben medir en el dispositivo de referencia antes de fijarlos (DT-02 en [arquitectura.md](../arquitectura.md#9-riesgos-y-deuda-técnica)):
+Tamaños aproximados que se deben medir antes de fijarlos (DT-02 y DT-03 en [arquitectura.md](../arquitectura.md#9-riesgos-y-deuda-técnica)):
 
-| Paquete | Tamaño aproximado |
-|---------|-------------------|
-| Qwen3.5-2B Q4 + mmproj | 1,5 a 2 GB |
-| Qwen3.5-0.8B Q4 + mmproj | 0,6 a 0,9 GB |
-| Qwen3.5-4B Q4 + mmproj | 2,8 a 3,2 GB |
-| Whisper base o small cuantizado | 60 a 200 MB |
-| Embeddings de texto (GGUF) | 50 a 350 MB |
-| Embeddings de imagen (ONNX) | 50 a 200 MB |
+| Elemento | Tamaño aproximado |
+|----------|-------------------|
+| LFM2.5-350M en GGUF (Q4_K_M a Q8_0) | 0,25 a 0,4 GB |
+| paraphrase-multilingual-MiniLM-L12-v2 en GGUF (Q8_0 a F16) | 0,12 a 0,24 GB |
+| APK total (código + modelos) | 0,4 a 0,7 GB |
+| RAM de la app con los dos modelos cargados | menos de 1,5 GB (EAC-04) |
+| Base local (unos pocos PDF) | 1 a 20 MB |
 
 ## 3. Justificación
 
-- RT-01 y EAC-02: no hay nodo de servidor en el camino de una consulta; la caja del teléfono es autosuficiente.
-- RT-02 y EAC-04: el presupuesto de almacenamiento y de RAM se resuelve eligiendo el tamaño de modelo según el equipo.
-- RT-04 y ADR-011: un solo tipo de nodo, Android ARM64.
-- RT-05 y ADR-007: el APK no lleva modelos; la carpeta `modelos/` se llena por Wi-Fi.
-- PA-08: fotos, audios y conversaciones quedan en el almacenamiento privado de la app.
-- ADR-003: la voz de salida no suma tamaño ni RAM, porque es del sistema.
+- RT-01 y EAC-02: no hay nodo de servidor en el camino de una consulta; el teléfono es autosuficiente.
+- RT-02 y EAC-04: los modelos elegidos quedan muy por debajo de 3,5 GB y 4 GB.
+- RT-04 y ADR-011: un solo tipo de nodo móvil, Android ARM64.
+- RT-05 y ADR-013: el APK trae los modelos; solo el conocimiento viaja por la red del punto de acceso.
+- ADR-012: la red del punto de acceso no tiene TLS; la app permite HTTP solo hacia el backend.
+- PA-08: nada del usuario viaja al computador.
 
 ## 4. Comportamiento
 
-La secuencia de [CU-01](../diagramas/secuencia/cu01-consultar-texto.puml) no sale del teléfono. La de [CU-05](../diagramas/secuencia/cu05-descargar-paquetes.puml) cruza el Wi-Fi hacia Hugging Face y la de [CU-06](../diagramas/secuencia/cu06-sincronizar.puml) hacia el backend.
+La secuencia de [CU-01](../diagramas/secuencia/cu01-actualizar-informacion.puml) cruza la red del punto de acceso hacia el computador administrador. Las de [CU-02](../diagramas/secuencia/cu02-consultar-texto.puml) y [CU-03](../diagramas/secuencia/cu03-vencer-vigencia.puml) no salen del teléfono.
 
 ## 5. Vistas relacionadas
 

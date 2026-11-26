@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado (2026-11-26)
+Reemplazado por [ADR-013](ADR-013-modelos-dentro-del-apk.md) (2026-11-26)
 
 ## Contexto
 
@@ -40,4 +40,4 @@ Se elige la opción C.
 
 ### Vistas que modifica
 
-[Lógica](../vistas/01-logica.md) (ciclo de vida del PaqueteModelo), [Procesos](../vistas/02-procesos.md), [Física](../vistas/04-fisica.md) y la secuencia [CU-05](../diagramas/secuencia/cu05-descargar-paquetes.puml).
+[Lógica](../vistas/01-logica.md) (ciclo de vida del PaqueteModelo), [Procesos](../vistas/02-procesos.md), [Física](../vistas/04-fisica.md) y la secuencia [CU-05](../diagramas/secuencia/historico/cu05-descargar-paquetes.puml).

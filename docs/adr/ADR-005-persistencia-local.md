@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado (2026-11-26)
+Reemplazado por [ADR-012](ADR-012-backend-local-y-carga-completa.md) (2026-11-26)
 
 ## Contexto
 
