@@ -1,0 +1,79 @@
+@startuml cu06
+title ESC-05: CU-06 Sincronizar la base de conocimiento y subir reseñas (EAC-03; ADR-006)
+skinparam backgroundColor #1E3B2F
+skinparam defaultFontName Arial
+skinparam defaultFontColor white
+skinparam titleFontColor white
+skinparam shadowing false
+<style>
+participant {
+  Padding 25
+}
+</style>
+skinparam BoxPadding 10
+skinparam wrapWidth 230
+skinparam maxMessageSize 230
+skinparam responseMessageBelowArrow true
+skinparam sequenceMessageAlign left
+skinparam NoteTextAlignment left
+skinparam SequenceGroupBodyBackgroundColor transparent
+skinparam ArrowColor white
+skinparam ArrowFontColor white
+skinparam sequence {
+  LifeLineBorderColor white
+  LifeLineBackgroundColor #548235
+  ParticipantBackgroundColor #548235
+  ParticipantBorderColor white
+  ParticipantFontColor white
+  ActorBackgroundColor #548235
+  ActorBorderColor white
+  ActorFontColor white
+  GroupBackgroundColor #2E5E4A
+  GroupBorderColor white
+  GroupFontColor white
+  BoxBackgroundColor #2E5E4A
+}
+skinparam note {
+  BackgroundColor #FFF2CC
+  BorderColor #C00000
+  FontColor #C00000
+}
+
+participant "App\n(al recuperar conexión)" as A
+participant "Módulo Sincronización" as S
+participant "Base local\n(SQLite)" as DB
+participant "Backend de\nconocimiento" as B
+
+A -> S : sincronizar() (al abrir la app con red, o a mano)
+S -> DB : último seq aplicado y modelos de embedding vigentes
+DB --> S : ultimo_seq = 1520
+loop mientras haya más páginas
+  S -> B : GET cambios desde seq 1520, límite 500 (HTTPS)
+  break error de red o respuesta inválida
+    S --> A : sincronización pendiente; la base queda como estaba
+  end
+  B --> S : página: filas nuevas, modificadas y borradas lógicamente + vectores + seq final
+  S -> DB : BEGIN
+  S -> DB : upsert de filas espejo; borra las marcadas como eliminadas
+  S -> DB : upsert en vec_imagen_especie, vec_fragmento y fts_fragmento
+  S -> DB : ultimo_seq = seq final de la página
+  S -> DB : COMMIT
+  note right : Cada página entra completa o no entra (EAC-03)
+end
+opt el backend anuncia otro modelo de embedding
+  S --> A : pide descargar el modelo nuevo (CU-05) antes de usar la búsqueda
+end
+opt hay miniaturas o PDF nuevos
+  S -> B : descarga los archivos en segundo plano
+end
+S -> DB : reseñas en cola_salida
+DB --> S : reseñas pendientes
+S -> B : POST reseñas (lote, cada una con su UUID)
+alt el backend confirma
+  B --> S : ids recibidos (los repetidos se ignoran: idempotente)
+  S -> DB : marca enviado_en y borra de cola_salida
+else falla
+  S -> DB : intentos + 1 y último error; se reintenta en la próxima sincronización
+end
+note across : 0 reseñas perdidas ni duplicadas; la base local nunca queda con una página a medias: cumple EAC-03
+@enduml

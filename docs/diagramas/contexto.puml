@@ -1,0 +1,32 @@
+@startuml contexto
+!include <C4/C4_Context>
+LAYOUT_WITH_LEGEND()
+skinparam linetype polyline
+skinparam nodesep 60
+skinparam ranksep 80
+title Contexto del Asistente de interpretación ambiental offline (C4 nivel 1)
+
+Person(guia, "Guía / Intérprete ambiental", "Consulta por texto, foto y voz; descarga paquetes antes de salir")
+Person(visitante, "Visitante / Turista", "Pregunta al asistente y deja reseñas")
+Person_Ext(biologo, "Biólogo / Curador", "Sube y valida especies, rutas y documentos (RN-01)")
+Person_Ext(admin, "Administrador del área protegida", "Revisa reseñas y calidad del servicio")
+
+System(sistema, "Asistente de interpretación ambiental", "App Android 100% offline: chat multimodal, rutas, fichas y reseñas")
+
+System_Ext(backend, "Backend de conocimiento PNN", "PostgreSQL + pgvector; vectoriza y publica cambios (propio o Supabase)")
+System_Ext(hf, "Hugging Face Hub", "Archivos GGUF / ONNX de los modelos")
+System_Ext(tts, "Motor de voz de Android", "Voces del sistema, en el teléfono")
+
+Lay_R(guia, visitante)
+Lay_R(biologo, admin)
+Lay_R(backend, hf)
+Lay_R(hf, tts)
+
+Rel_D(guia, sistema, "Pregunta, fotografía, habla y descarga paquetes", "pantalla táctil, cámara, micrófono")
+Rel_D(visitante, sistema, "Pregunta y deja reseñas", "pantalla táctil")
+Rel_D(sistema, backend, "Baja cambios y manifest; sube reseñas (solo con conexión)", "HTTPS")
+Rel_D(sistema, hf, "Descarga modelos (solo Wi-Fi, CU-05)", "HTTPS")
+Rel_D(sistema, tts, "Lee la respuesta por frases (opcional)", "expo-speech, sin red")
+Rel_U(biologo, backend, "Carga y valida contenido", "HTTPS")
+Rel_U(admin, backend, "Consulta reseñas", "HTTPS")
+@enduml

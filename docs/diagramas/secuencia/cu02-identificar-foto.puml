@@ -1,0 +1,78 @@
+@startuml cu02
+title ESC-02: CU-02 Identificar especie por foto (EAC-04, EAC-05; ADR-002, ADR-009)
+skinparam backgroundColor #1E3B2F
+skinparam defaultFontName Arial
+skinparam defaultFontColor white
+skinparam titleFontColor white
+skinparam shadowing false
+<style>
+participant {
+  Padding 25
+}
+</style>
+skinparam BoxPadding 10
+skinparam wrapWidth 230
+skinparam maxMessageSize 230
+skinparam responseMessageBelowArrow true
+skinparam sequenceMessageAlign left
+skinparam NoteTextAlignment left
+skinparam SequenceGroupBodyBackgroundColor transparent
+skinparam ArrowColor white
+skinparam ArrowFontColor white
+skinparam sequence {
+  LifeLineBorderColor white
+  LifeLineBackgroundColor #548235
+  ParticipantBackgroundColor #548235
+  ParticipantBorderColor white
+  ParticipantFontColor white
+  ActorBackgroundColor #548235
+  ActorBorderColor white
+  ActorFontColor white
+  GroupBackgroundColor #2E5E4A
+  GroupBorderColor white
+  GroupFontColor white
+  BoxBackgroundColor #2E5E4A
+}
+skinparam note {
+  BackgroundColor #FFF2CC
+  BorderColor #C00000
+  FontColor #C00000
+}
+
+actor "Guía / Visitante" as U
+participant "Chat\n(pantalla)" as UI
+participant "Módulo Identificación" as I
+participant "Gestor de modelos" as G
+participant "Codificador de imagen\n(ONNX)" as E
+participant "Base local\n(sqlite-vec)" as DB
+participant "Módulo Consulta" as C
+participant "Motor de inferencia\n(Qwen3.5 + mmproj)" as M
+
+U -> UI : toma una foto y pregunta "¿qué planta es?"
+UI -> I : identificar(foto, pregunta)
+I -> I : guarda la foto en media/ (no sale del teléfono, PA-08)
+I -> G : obtener codificador de imagen
+G --> I : codificador listo
+I -> E : vectorizar(foto redimensionada)
+E --> I : vector (mismo modelo que el backend)
+I -> DB : kNN en vec_imagen_especie (k = 5)
+DB --> I : imágenes candidatas + especie + similitud
+
+alt ningún candidato supera el umbral
+  I -> C : consultar(pregunta, foto, candidatos vacíos)
+  C -> M : generar con la imagen: describir rasgos sin nombrar especie
+  M --> C : tokens (streaming)
+  C --> UI : "No la encuentro en el catálogo. Esto es lo que se observa: ..." (EAC-05)
+else hay candidatos
+  I -> DB : fichas, descripciones y fuentes de las especies candidatas
+  I -> C : consultar(pregunta, foto, candidatos)
+  C -> M : generar(imagen cruda + fichas de los candidatos + "elige solo entre estos")
+  note right : Qwen3.5 codifica la imagen con su proyector de visión (mmproj).\nNo recibe el vector de ONNX: ese solo sirvió para buscar.
+  loop por cada token
+    M --> C : token
+    C --> UI : agrega el token
+  end
+  C --> UI : especie propuesta + miniatura de referencia + fuente
+end
+note across : El 100% de las especies propuestas existen en el catálogo (EAC-05).\nSolo un modelo pesado activo a la vez y memoria ≤ 4 GB (EAC-04, ADR-009)
+@enduml

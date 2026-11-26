@@ -1,0 +1,335 @@
+@startuml er
+title Vista de datos: modelo entidad-relación de la Base local (SQLite) y su espejo en PostgreSQL
+
+skinparam backgroundColor #1E3B2F
+skinparam defaultFontName Arial
+skinparam defaultFontColor white
+skinparam titleFontColor white
+skinparam shadowing false
+skinparam linetype ortho
+skinparam nodesep 50
+skinparam ranksep 60
+skinparam ArrowColor white
+skinparam ArrowFontColor white
+skinparam package {
+  BackgroundColor #24493A
+  BorderColor #A9D18E
+  FontColor white
+}
+skinparam class {
+  BackgroundColor #2E5E4A
+  BorderColor white
+  FontColor white
+  AttributeFontColor white
+  HeaderBackgroundColor #548235
+  StereotypeFontColor #C5E0B4
+}
+skinparam class<<vector>> {
+  BackgroundColor #7F6000
+  HeaderBackgroundColor #BF9000
+}
+hide circle
+hide methods
+
+' Toda tabla espejo lleva además: seq INTEGER, actualizado_en TEXT (ISO-8601), eliminado INTEGER (0/1)
+
+package "Espejo: conocimiento validado (solo lectura en el teléfono)" {
+
+  entity grupo_taxonomico <<espejo>> {
+    * id : TEXT <<PK, UUID>>
+    --
+    padre_id : TEXT <<FK>>
+    * rango : TEXT  -- clase | orden | familia
+    * nombre : TEXT
+  }
+
+  entity especie <<espejo>> {
+    * id : TEXT <<PK>>
+    --
+    * grupo_taxonomico_id : TEXT <<FK>>
+    * nombre_cientifico : TEXT <<UNIQUE>>
+    * nombre_comun_es : TEXT
+    nombre_comun_en : TEXT
+    * reino : TEXT  -- fauna | flora | hongo
+    estado_conservacion : TEXT  -- UICN / lista nacional
+    * endemica : INTEGER
+    altitud_min_m : INTEGER
+    altitud_max_m : INTEGER
+    * descripcion_es : TEXT
+    descripcion_en : TEXT
+  }
+
+  entity ficha_fauna <<espejo>> {
+    * especie_id : TEXT <<PK, FK>>
+    --
+    dieta : TEXT
+    comportamiento : TEXT
+    actividad : TEXT  -- diurna | nocturna | crepuscular
+    senales_campo : TEXT  -- huellas, cantos
+  }
+
+  entity ficha_flora <<espejo>> {
+    * especie_id : TEXT <<PK, FK>>
+    --
+    forma_crecimiento : TEXT  -- roseta, arbusto, cojín...
+    floracion : TEXT
+    usos_tradicionales : TEXT
+  }
+
+  entity imagen_especie <<espejo>> {
+    * id : TEXT <<PK>>
+    --
+    * especie_id : TEXT <<FK>>
+    * descripcion : TEXT  -- texto plano
+    autor : TEXT
+    licencia : TEXT
+    url_original : TEXT  -- solo en el backend
+    ruta_miniatura : TEXT  -- archivo local
+    * modelo_embedding : TEXT  -- nombre@versión
+  }
+
+  entity vec_imagen_especie <<vector>> {
+    * imagen_id : TEXT <<PK, FK>>
+    --
+    * embedding : float[D_IMG]
+    .. sqlite-vec: vec0 ..
+    .. PostgreSQL: vector(D_IMG) en imagen_especie ..
+  }
+
+  entity ecosistema <<espejo>> {
+    * id : TEXT <<PK>>
+    --
+    * nombre : TEXT  -- páramo, bosque altoandino...
+    altitud_min_m : INTEGER
+    altitud_max_m : INTEGER
+    descripcion : TEXT
+  }
+
+  entity especie_ecosistema <<espejo>> {
+    * especie_id : TEXT <<PK, FK>>
+    * ecosistema_id : TEXT <<PK, FK>>
+  }
+
+  entity ruta <<espejo>> {
+    * id : TEXT <<PK>>
+    --
+    * nombre : TEXT
+    * tipo : TEXT  -- sendero | alta_montana | ciclomontanismo | cicloturismo | vehicular
+    * sector : TEXT
+    * dificultad : TEXT  -- baja | media | alta
+    distancia_km : REAL
+    altitud_min_m : INTEGER
+    altitud_max_m : INTEGER
+    duracion_min : INTEGER
+    * requiere_guia : INTEGER
+    * estado : TEXT  -- abierta | cerrada
+    trazado_geojson : TEXT
+    descripcion : TEXT
+  }
+
+  entity ruta_ecosistema <<espejo>> {
+    * ruta_id : TEXT <<PK, FK>>
+    * ecosistema_id : TEXT <<PK, FK>>
+  }
+
+  entity punto_interes <<espejo>> {
+    * id : TEXT <<PK>>
+    --
+    * ruta_id : TEXT <<FK>>
+    * nombre : TEXT
+    * tipo : TEXT  -- mirador | laguna | glaciar | refugio | control
+    latitud : REAL
+    longitud : REAL
+    altitud_m : INTEGER
+    * orden : INTEGER
+    descripcion : TEXT
+  }
+
+  entity especie_ruta <<espejo>> {
+    * id : TEXT <<PK>>
+    --
+    * especie_id : TEXT <<FK>>
+    * ruta_id : TEXT <<FK>>
+    punto_interes_id : TEXT <<FK>>
+    * frecuencia : TEXT  -- comun | ocasional | rara
+    temporada : TEXT
+  }
+
+  entity documento_fuente <<espejo>> {
+    * id : TEXT <<PK>>
+    --
+    * titulo : TEXT
+    * entidad : TEXT
+    anio : INTEGER
+    * tipo : TEXT  -- plan_manejo | guia_campo | normativa | articulo
+    idioma : TEXT
+    url_pdf : TEXT
+    ruta_local : TEXT  -- si se descargó el PDF
+    sha256 : TEXT
+    tamano_bytes : INTEGER
+    * validado_por : TEXT  -- RN-01
+    * validado_en : TEXT
+  }
+
+  entity fragmento_documento <<espejo>> {
+    * id : TEXT <<PK>>
+    --
+    * documento_id : TEXT <<FK>>
+    * pagina : INTEGER
+    * orden : INTEGER
+    * texto : TEXT
+    * modelo_embedding : TEXT
+  }
+
+  entity vec_fragmento <<vector>> {
+    * fragmento_id : TEXT <<PK, FK>>
+    --
+    * embedding : float[D_TXT]
+  }
+
+  entity fts_fragmento <<vector>> {
+    texto  -- FTS5, solo en el teléfono
+    .. búsqueda por palabras (nombres científicos) ..
+  }
+
+  entity fuente_especie <<espejo>> {
+    * especie_id : TEXT <<PK, FK>>
+    * documento_id : TEXT <<PK, FK>>
+    --
+    pagina : INTEGER
+  }
+
+  entity protocolo <<espejo>> {
+    * id : TEXT <<PK>>
+    --
+    * tipo : TEXT  -- minimo_impacto | seguridad
+    * titulo : TEXT
+    * texto : TEXT
+    documento_id : TEXT <<FK>>
+  }
+}
+
+package "Solo subida: retroalimentación" {
+  entity resena <<subida>> {
+    * id : TEXT <<PK, UUID del teléfono>>
+    --
+    ruta_id : TEXT <<FK>>
+    * perfil : TEXT  -- infantil | general | especializado
+    * idioma : TEXT
+    * calificacion_utilidad : INTEGER  -- 1 a 5
+    * comprension : INTEGER  -- 1 a 5
+    rendimiento_percibido : INTEGER  -- 1 a 5
+    comentario : TEXT
+    * consentimiento_metricas : INTEGER
+    modelo_dispositivo : TEXT
+    ram_mb : INTEGER
+    modelo_ia : TEXT
+    ttft_ms_promedio : INTEGER
+    tokens_por_seg : REAL
+    * creado_en : TEXT
+    enviado_en : TEXT
+  }
+
+  entity cola_salida <<local>> {
+    * id : INTEGER <<PK>>
+    --
+    * tipo : TEXT  -- resena
+    * entidad_id : TEXT
+    * intentos : INTEGER
+    ultimo_error : TEXT
+    * creado_en : TEXT
+  }
+}
+
+package "Solo local: uso en campo" {
+  entity conversacion <<local>> {
+    * id : TEXT <<PK>>
+    --
+    * perfil : TEXT
+    * idioma : TEXT
+    titulo : TEXT
+    * creado_en : TEXT
+  }
+
+  entity mensaje <<local>> {
+    * id : TEXT <<PK>>
+    --
+    * conversacion_id : TEXT <<FK>>
+    * rol : TEXT  -- usuario | asistente
+    * texto : TEXT
+    ruta_foto : TEXT
+    ruta_audio : TEXT
+    * estado : TEXT  -- generando | completo | detenido | error
+    ttft_ms : INTEGER
+    * creado_en : TEXT
+  }
+
+  entity cita <<local>> {
+    * mensaje_id : TEXT <<PK, FK>>
+    * orden : INTEGER <<PK>>
+    --
+    fragmento_id : TEXT <<FK>>
+    especie_id : TEXT <<FK>>
+    * similitud : REAL
+  }
+
+  entity paquete_modelo <<local>> {
+    * id : TEXT <<PK>>
+    --
+    * tipo : TEXT  -- lenguaje | mmproj | stt | emb_texto | emb_imagen | conocimiento
+    * nombre : TEXT
+    * version : TEXT
+    * url : TEXT
+    * tamano_bytes : INTEGER
+    * sha256 : TEXT
+    ram_min_mb : INTEGER
+    ruta_local : TEXT
+    bytes_descargados : INTEGER
+    * estado : TEXT
+  }
+
+  entity estado_sync <<local>> {
+    * ambito : TEXT <<PK>>  -- conocimiento
+    --
+    * ultimo_seq : INTEGER
+    ultima_sync_en : TEXT
+    modelo_emb_texto : TEXT
+    modelo_emb_imagen : TEXT
+  }
+
+  entity preferencia <<local>> {
+    * clave : TEXT <<PK>>
+    --
+    * valor : TEXT
+  }
+}
+
+grupo_taxonomico |o--o{ grupo_taxonomico : padre
+grupo_taxonomico ||--o{ especie
+especie ||--o| ficha_fauna
+especie ||--o| ficha_flora
+especie ||--o{ imagen_especie
+imagen_especie ||--|| vec_imagen_especie
+especie ||--o{ especie_ecosistema
+ecosistema ||--o{ especie_ecosistema
+ruta ||--o{ ruta_ecosistema
+ecosistema ||--o{ ruta_ecosistema
+ruta ||--o{ punto_interes
+especie ||--o{ especie_ruta
+ruta ||--o{ especie_ruta
+punto_interes |o--o{ especie_ruta
+documento_fuente ||--|{ fragmento_documento
+fragmento_documento ||--|| vec_fragmento
+fragmento_documento ||--|| fts_fragmento
+especie ||--|{ fuente_especie
+documento_fuente ||--o{ fuente_especie
+documento_fuente |o--o{ protocolo
+
+ruta |o--o{ resena
+resena ||--o| cola_salida
+
+conversacion ||--o{ mensaje
+mensaje ||--o{ cita
+fragmento_documento |o--o{ cita
+especie |o--o{ cita
+@enduml

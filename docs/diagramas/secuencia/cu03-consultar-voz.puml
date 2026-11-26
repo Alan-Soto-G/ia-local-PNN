@@ -1,0 +1,78 @@
+@startuml cu03
+title ESC-03: CU-03 Consultar por voz y CU-04 escuchar la respuesta (EAC-04, EAC-06; ADR-003, ADR-009)
+skinparam backgroundColor #1E3B2F
+skinparam defaultFontName Arial
+skinparam defaultFontColor white
+skinparam titleFontColor white
+skinparam shadowing false
+<style>
+participant {
+  Padding 25
+}
+</style>
+skinparam BoxPadding 10
+skinparam wrapWidth 230
+skinparam maxMessageSize 230
+skinparam responseMessageBelowArrow true
+skinparam sequenceMessageAlign left
+skinparam NoteTextAlignment left
+skinparam SequenceGroupBodyBackgroundColor transparent
+skinparam ArrowColor white
+skinparam ArrowFontColor white
+skinparam sequence {
+  LifeLineBorderColor white
+  LifeLineBackgroundColor #548235
+  ParticipantBackgroundColor #548235
+  ParticipantBorderColor white
+  ParticipantFontColor white
+  ActorBackgroundColor #548235
+  ActorBorderColor white
+  ActorFontColor white
+  GroupBackgroundColor #2E5E4A
+  GroupBorderColor white
+  GroupFontColor white
+  BoxBackgroundColor #2E5E4A
+}
+skinparam note {
+  BackgroundColor #FFF2CC
+  BorderColor #C00000
+  FontColor #C00000
+}
+
+actor "Guía" as U
+participant "Chat\n(pantalla)" as UI
+participant "Módulo Voz" as V
+participant "Gestor de modelos" as G
+participant "Transcriptor\n(whisper.rn)" as T
+participant "Módulo Consulta" as C
+participant "Motor de voz\nde Android" as S
+
+U -> UI : mantiene presionado el botón de hablar
+UI -> V : grabar()
+break permiso de micrófono negado
+  V --> UI : explica cómo darlo y ofrece escribir
+end
+U -> UI : suelta el botón
+UI -> V : detener la grabación
+V -> G : obtener transcriptor
+G --> V : transcriptor cargado
+V -> T : transcribir(audio, idioma de preferencia)
+T --> V : texto
+V -> G : liberar transcriptor (ADR-009)
+V --> UI : muestra la transcripción para revisarla
+note across : 10 s de audio transcritos en ≤ 3 s: cumple EAC-06
+U -> UI : envía (o corrige y envía)
+UI -> C : consultar(texto)
+note over C : sigue el flujo de ESC-01 (cu01-consultar-texto)
+
+opt lectura en voz alta activada (CU-04)
+  loop mientras llegan tokens
+    C --> UI : token
+    UI -> V : acumula hasta el fin de la frase
+    V -> S : speak(frase, idioma)
+  end
+  opt no hay voz instalada para el idioma
+    V --> UI : avisa e indica cómo instalarla en Android
+  end
+end
+@enduml
