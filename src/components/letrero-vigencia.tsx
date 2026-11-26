@@ -4,29 +4,38 @@ import { Colores, Espacio, Radio, Tipo } from '@/constants/theme';
 
 interface Props {
   texto: string;
+  /** Variante para la cabecera del chat: más baja y sin poste. */
+  compacto?: boolean;
 }
 
 /**
  * Vigencia como letrero de sendero de madera (EAC-06: siempre visible con carga
  * vigente). Crema sobre madera: contraste 11,2:1.
  */
-export function LetreroVigencia({ texto }: Props) {
+export function LetreroVigencia({ texto, compacto = false }: Props) {
   return (
-    <View style={estilos.contenedor} accessibilityRole="summary" accessibilityLabel={texto}>
-      <View style={estilos.tabla}>
+    <View
+      style={[estilos.contenedor, compacto && estilos.contenedorCompacto]}
+      accessibilityRole="summary"
+      accessibilityLabel={texto}
+    >
+      <View style={[estilos.tabla, compacto && estilos.tablaCompacta]}>
         <View style={estilos.clavo} />
-        <Text style={estilos.texto}>{texto}</Text>
+        <Text style={[estilos.texto, compacto && estilos.textoCompacto]}>{texto}</Text>
         <View style={estilos.clavo} />
       </View>
-      <View style={estilos.punta} />
-      <View style={estilos.postes} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <View style={estilos.poste} />
-      </View>
+      <View style={[estilos.punta, compacto && estilos.puntaCompacta]} />
+      {compacto ? null : (
+        <View style={estilos.postes} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <View style={estilos.poste} />
+        </View>
+      )}
     </View>
   );
 }
 
 const ALTO = 60;
+const ALTO_COMPACTO = 44;
 
 const estilos = StyleSheet.create({
   contenedor: {
@@ -34,6 +43,22 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     marginBottom: Espacio.m,
+  },
+  contenedorCompacto: {
+    marginBottom: 0,
+    flexShrink: 1,
+  },
+  tablaCompacta: {
+    minHeight: ALTO_COMPACTO,
+    paddingVertical: Espacio.xs,
+  },
+  textoCompacto: {
+    ...Tipo.etiqueta,
+  },
+  puntaCompacta: {
+    borderTopWidth: ALTO_COMPACTO / 2,
+    borderBottomWidth: ALTO_COMPACTO / 2,
+    borderLeftWidth: 18,
   },
   tabla: {
     minHeight: ALTO,

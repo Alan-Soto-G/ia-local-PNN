@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -46,11 +47,20 @@ export default function Inicio() {
       </ScrollView>
 
       <View style={estilos.acciones}>
+        {vigencia.estado === 'vigente' ? (
+          <BotonGrande
+            etiqueta={TEXTOS.hacerPregunta}
+            onPress={() => router.push('/chat')}
+            variante="laguna"
+            deshabilitado={cargando}
+          />
+        ) : null}
         <BotonGrande
           etiqueta={TEXTOS.actualizar}
           onPress={() => void actualizar()}
           ocupado={cargando}
           deshabilitado={vigencia.leyendo}
+          variante={vigencia.estado === 'vigente' ? 'contorno' : 'primario'}
         />
       </View>
     </SafeAreaView>

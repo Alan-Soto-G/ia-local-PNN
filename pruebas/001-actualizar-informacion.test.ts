@@ -9,7 +9,12 @@ import { ActualizarInformacion } from '../src/aplicacion/casos-uso/actualizacion
 import { GestorModelos } from '../src/aplicacion/casos-uso/modelos/GestorModelos';
 import { ModuloVigencia } from '../src/aplicacion/casos-uso/vigencia/ModuloVigencia';
 import { DURACION_VIGENCIA_MS } from '../src/aplicacion/configuracion/carga';
-import { MODELO_EMBEDDING } from '../src/aplicacion/configuracion/modelos';
+import {
+  MODELO_EMBEDDING,
+  MODELO_LOCAL_EMBEDDINGS,
+  MODELO_LOCAL_LENGUAJE,
+  type DatosModeloEmbedding,
+} from '../src/aplicacion/configuracion/modelos';
 import { textoCargaLista, textoDisponibleHasta, textoProgreso } from '../src/aplicacion/configuracion/textos';
 import { BackendNoDisponible } from '../src/aplicacion/errores/BackendNoDisponible';
 import { CargaIncompleta } from '../src/aplicacion/errores/CargaIncompleta';
@@ -141,13 +146,28 @@ class RelojFalso {
   }
 }
 
+/** Gestor de modelos para CU-01: solo se usa `modeloEmbeddingEsperado()`. */
+function gestor(modeloEmbedding: DatosModeloEmbedding = MODELO_EMBEDDING): GestorModelos {
+  const sinUso = () => {
+    throw new Error('CU-01 no carga modelos');
+  };
+  return new GestorModelos({
+    modeloEmbedding,
+    lenguaje: MODELO_LOCAL_LENGUAJE,
+    embeddings: MODELO_LOCAL_EMBEDDINGS,
+    preparador: { preparar: sinUso },
+    motor: { cargar: sinUso, liberar: sinUso, estaCargado: () => false, contarTokens: sinUso, generar: sinUso, detener: sinUso },
+    codificador: { cargar: sinUso, liberar: sinUso, estaCargado: () => false, vectorizar: sinUso },
+  });
+}
+
 function montar(ahora = new Date('2026-11-26T15:04:00')) {
   const backend = new BackendFalso();
   const repo = new RepositorioFalso();
   const notificador = new NotificadorFalso();
   const reloj = new RelojFalso(ahora);
   const vigencia = new ModuloVigencia(repo, notificador, DURACION_VIGENCIA_MS);
-  const caso = new ActualizarInformacion(backend, repo, new GestorModelos(MODELO_EMBEDDING), vigencia, reloj);
+  const caso = new ActualizarInformacion(backend, repo, gestor(), vigencia, reloj);
   return { backend, repo, notificador, reloj, vigencia, caso };
 }
 
@@ -246,7 +266,7 @@ describe('CU-01 Actualizar información', () => {
     const caso = new ActualizarInformacion(
       backend,
       repo,
-      new GestorModelos({ nombre: 'otro-modelo', dimensiones: 384 }),
+      gestor({ nombre: 'otro-modelo', dimensiones: 384 }),
       new ModuloVigencia(repo, notificador, DURACION_VIGENCIA_MS),
       reloj,
     );

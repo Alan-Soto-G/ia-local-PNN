@@ -48,7 +48,9 @@
           "color": "#234A31"
         }
       ],
-      "./plugins/with-red-local-android.js"
+      "./plugins/with-red-local-android.js",
+      "llama.rn",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
