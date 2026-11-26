@@ -1,65 +1,76 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://unistyl.es/), etc.
+ * Tema "páramo" (EAC-06): niebla, roca, musgo de frailejón, laguna y madera de
+ * letrero de sendero. Solo tema claro: es el más legible bajo el sol.
+ * Cada par texto/fondo se comprobó con contraste ≥ 7:1 (WCAG AAA); ver
+ * specs/001-actualizar-informacion/validacion.md.
  */
+export const Colores = {
+  fondo: '#F4F1E6', // niebla del páramo
+  superficie: '#FFFDF7',
+  cielo: '#DCE6E0',
+  texto: '#16241B', // roca
+  textoSecundario: '#33433A',
+  borde: '#B9B29C',
 
-import '@/global.css';
+  primario: '#234A31', // musgo de frailejón
+  primarioPresionado: '#183623',
+  sobrePrimario: '#FFFFFF',
 
-import { Platform } from 'react-native';
+  laguna: '#0B4A57',
+  sobreLaguna: '#FFFFFF',
 
-export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
+  madera: '#4A2E1C', // letrero de sendero
+  sobreMadera: '#FFF3D1',
+
+  ambar: '#F2B43A', // flor del frailejón; solo como relleno con texto roca
+  sobreAmbar: '#16241B',
+
+  error: '#8A1C1C',
+  sobreError: '#FFFFFF',
+  fondoError: '#FBE9E6',
+  textoError: '#7A1616',
+
+  fondoExito: '#E3EFDF',
+  textoExito: '#163A22',
+
+  deshabilitado: '#D9D4C3',
+  sobreDeshabilitado: '#2A332D',
+  pista: '#E7E1CF',
+
+  // Cordillera (decorativa, sin texto encima)
+  montanaLejana: '#8FA39C',
+  montanaMedia: '#4E7A5C',
+  montanaCercana: '#234A31',
+  nieve: '#FFFFFF',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
-
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
-
-export const Spacing = {
-  half: 2,
-  one: 4,
-  two: 8,
-  three: 16,
-  four: 24,
-  five: 32,
-  six: 64,
+/** Escala de 8 dp (ui-ux-pro-max, spacing-scale). */
+export const Espacio = {
+  xs: 4,
+  s: 8,
+  m: 16,
+  l: 24,
+  xl: 32,
+  xxl: 48,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+/** Tamaños táctiles (EAC-06: botones de al menos 56 dp). */
+export const Toque = {
+  botonAlto: 64,
+  minimo: 56,
+} as const;
+
+/** Tipografía del sistema (Roboto); nunca menos de 16. */
+export const Tipo = {
+  titulo: { fontSize: 28, lineHeight: 34, fontWeight: '700' },
+  subtitulo: { fontSize: 20, lineHeight: 26, fontWeight: '700' },
+  cuerpo: { fontSize: 18, lineHeight: 27, fontWeight: '400' },
+  etiqueta: { fontSize: 16, lineHeight: 22, fontWeight: '600', letterSpacing: 0.4 },
+  boton: { fontSize: 20, lineHeight: 26, fontWeight: '700' },
+} as const;
+
+export const Radio = {
+  s: 8,
+  m: 14,
+  l: 22,
+} as const;

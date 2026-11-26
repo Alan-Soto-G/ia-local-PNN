@@ -1,98 +1,80 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { textoDisponibleHasta, TEXTOS } from '@/aplicacion/configuracion/textos';
+import { AvisoEstado } from '@/components/aviso-estado';
+import { BotonGrande } from '@/components/boton-grande';
+import { Cordillera } from '@/components/cordillera';
+import { ExplicacionPermiso } from '@/components/explicacion-permiso';
+import { LetreroVigencia } from '@/components/letrero-vigencia';
+import { ProgresoCarga } from '@/components/progreso-carga';
+import { Colores, Espacio } from '@/constants/theme';
+import { useActualizacion } from '@/hooks/use-actualizacion';
+import { useVigencia } from '@/hooks/use-vigencia';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+/** Inicio (CU-01): actualizar la información y ver hasta cuándo está disponible. */
+export default function Inicio() {
+  const vigencia = useVigencia();
+  const { estado, pedirPermiso, actualizar, permitirAvisos, ahoraNo } = useActualizacion(vigencia.refrescar);
+  const cargando = estado.tipo === 'cargando';
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <SafeAreaView style={estilos.pantalla} edges={['top', 'bottom']}>
+      <ScrollView contentContainerStyle={estilos.contenido} bounces={false}>
+        <Cordillera />
+        <View style={estilos.cuerpo}>
+          {vigencia.estado === 'vigente' && vigencia.expiraEn !== null ? (
+            <LetreroVigencia texto={textoDisponibleHasta(vigencia.expiraEn, new Date())} />
+          ) : null}
+
+          {estado.tipo === 'cargando' && estado.texto !== null ? (
+            <ProgresoCarga texto={estado.texto} actual={estado.actual} total={estado.total} />
+          ) : null}
+          {estado.tipo === 'exito' ? <AvisoEstado tipo="exito" texto={estado.texto} /> : null}
+          {estado.tipo === 'error' ? <AvisoEstado tipo="error" texto={estado.texto} /> : null}
+
+          {pedirPermiso ? (
+            <ExplicacionPermiso
+              texto={TEXTOS.explicacionPermiso}
+              etiquetaPermitir={TEXTOS.permitirAvisos}
+              etiquetaAhoraNo={TEXTOS.ahoraNo}
+              onPermitir={() => void permitirAvisos()}
+              onAhoraNo={ahoraNo}
+            />
+          ) : null}
+        </View>
+      </ScrollView>
+
+      <View style={estilos.acciones}>
+        <BotonGrande
+          etiqueta={TEXTOS.actualizar}
+          onPress={() => void actualizar()}
+          ocupado={cargando}
+          deshabilitado={vigencia.leyendo}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
+const estilos = StyleSheet.create({
+  pantalla: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+    backgroundColor: Colores.fondo,
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+  contenido: {
+    flexGrow: 1,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+  cuerpo: {
+    padding: Espacio.l,
   },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  acciones: {
+    paddingHorizontal: Espacio.l,
+    paddingTop: Espacio.s,
+    paddingBottom: Espacio.m,
+    gap: Espacio.s,
+    backgroundColor: Colores.fondo,
+    borderTopWidth: 1,
+    borderTopColor: Colores.borde,
   },
 });
