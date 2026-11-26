@@ -37,6 +37,10 @@ export const Colores = {
   sobreDeshabilitado: '#2A332D',
   pista: '#E7E1CF',
 
+  // Noche del páramo: diálogo de vencimiento (crema sobre noche 13,4:1)
+  noche: '#1F2A24',
+  sobreNoche: '#FFF3D1',
+
   // Cordillera (decorativa, sin texto encima)
   montanaLejana: '#8FA39C',
   montanaMedia: '#4E7A5C',

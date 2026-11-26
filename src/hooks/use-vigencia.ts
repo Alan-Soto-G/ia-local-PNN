@@ -1,3 +1,4 @@
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
@@ -11,8 +12,9 @@ export interface Vigencia extends EstadoVigencia {
 }
 
 /**
- * Estado de la vigencia para las pantallas. Se vuelve a leer al volver a primer
- * plano y justo al llegar `expira_en`, para que el bloqueo sea exacto (ADR-015).
+ * Estado de la vigencia para las pantallas. Se vuelve a leer al ganar foco, al
+ * volver a primer plano y justo al llegar `expira_en`, para que el bloqueo sea
+ * exacto (ADR-015).
  */
 export function useVigencia(): Vigencia {
   const { vigencia, reloj } = useDependencias();
@@ -29,8 +31,13 @@ export function useVigencia(): Vigencia {
     [vigencia, reloj],
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      void leer();
+    }, [leer]),
+  );
+
   useEffect(() => {
-    void leer();
     const suscripcion = AppState.addEventListener('change', (siguiente) => {
       if (siguiente === 'active') void leer();
     });

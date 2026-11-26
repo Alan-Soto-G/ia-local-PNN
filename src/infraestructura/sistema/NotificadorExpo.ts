@@ -1,6 +1,8 @@
 import {
+  addNotificationResponseReceivedListener,
   AndroidImportance,
   cancelScheduledNotificationAsync,
+  getLastNotificationResponseAsync,
   getPermissionsAsync,
   requestPermissionsAsync,
   scheduleNotificationAsync,
@@ -53,12 +55,27 @@ export class NotificadorExpo implements Notificador {
         type: SchedulableTriggerInputTypes.DATE,
         date: fecha,
         channelId: CANAL,
+        // Alarma exacta si Android concedió SCHEDULE_EXACT_ALARM; si no, expo-notifications
+        // la programa como 'bestEffort' (spec 003, DT-06).
+        delivery: 'alarmClock',
       },
     });
   }
 
   async cancelarVencimiento(): Promise<void> {
     await cancelScheduledNotificationAsync(ID_AVISO);
+  }
+
+  async abiertaDesdeAviso(): Promise<boolean> {
+    const respuesta = await getLastNotificationResponseAsync();
+    return respuesta?.notification.request.identifier === ID_AVISO;
+  }
+
+  alTocarAviso(oyente: () => void): () => void {
+    const suscripcion = addNotificationResponseReceivedListener((respuesta) => {
+      if (respuesta.notification.request.identifier === ID_AVISO) oyente();
+    });
+    return () => suscripcion.remove();
   }
 
   private asegurarCanal(): Promise<void> {

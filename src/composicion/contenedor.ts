@@ -1,3 +1,4 @@
+import configuracionApp from '../../app.json';
 import { ActualizarInformacion } from '../aplicacion/casos-uso/actualizacion/ActualizarInformacion';
 import { ConsultarAsistente } from '../aplicacion/casos-uso/consulta/ConsultarAsistente';
 import { GestorModelos } from '../aplicacion/casos-uso/modelos/GestorModelos';
@@ -20,6 +21,7 @@ import { BuscadorVectorialSqlite } from '../infraestructura/persistencia/Buscado
 import { RepositorioConocimientoSqlite } from '../infraestructura/persistencia/RepositorioConocimientoSqlite';
 import { RepositorioConversacionesSqlite } from '../infraestructura/persistencia/RepositorioConversacionesSqlite';
 import { ClienteBackendHttp } from '../infraestructura/red/ClienteBackendHttp';
+import { DesinstaladorAndroid } from '../infraestructura/sistema/DesinstaladorAndroid';
 import { NotificadorExpo } from '../infraestructura/sistema/NotificadorExpo';
 import { RelojSistema } from '../infraestructura/sistema/RelojSistema';
 
@@ -49,7 +51,13 @@ export function crearContenedor(): Contenedor {
     motor: new MotorLlama(CONTEXTO_LENGUAJE),
     codificador: new CodificadorLlama(MODELO_EMBEDDING.dimensiones),
   });
-  const vigencia = new ModuloVigencia(conocimiento, notificador, DURACION_VIGENCIA_MS);
+  const vigencia = new ModuloVigencia(
+    conocimiento,
+    notificador,
+    DURACION_VIGENCIA_MS,
+    gestorModelos,
+    new DesinstaladorAndroid(configuracionApp.expo.android.package),
+  );
   const cliente = new ClienteBackendHttp(
     process.env.EXPO_PUBLIC_BACKEND_URL ?? URL_BACKEND_POR_DEFECTO,
     LIMITE_SALUD_MS,

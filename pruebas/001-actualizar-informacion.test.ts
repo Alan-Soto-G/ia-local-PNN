@@ -137,7 +137,16 @@ class NotificadorFalso implements Notificador {
     this.canceladas++;
     this.programada = null;
   }
+  async abiertaDesdeAviso() {
+    return false;
+  }
+  alTocarAviso() {
+    return () => {};
+  }
 }
+
+const SIN_MODELOS = { liberar: async () => {} };
+const SIN_DESINSTALADOR = { abrirDesinstalacion: async () => {} };
 
 class RelojFalso {
   constructor(public t: Date) {}
@@ -166,7 +175,7 @@ function montar(ahora = new Date('2026-11-26T15:04:00')) {
   const repo = new RepositorioFalso();
   const notificador = new NotificadorFalso();
   const reloj = new RelojFalso(ahora);
-  const vigencia = new ModuloVigencia(repo, notificador, DURACION_VIGENCIA_MS);
+  const vigencia = new ModuloVigencia(repo, notificador, DURACION_VIGENCIA_MS, SIN_MODELOS, SIN_DESINSTALADOR);
   const caso = new ActualizarInformacion(backend, repo, gestor(), vigencia, reloj);
   return { backend, repo, notificador, reloj, vigencia, caso };
 }
@@ -267,7 +276,7 @@ describe('CU-01 Actualizar información', () => {
       backend,
       repo,
       gestor({ nombre: 'otro-modelo', dimensiones: 384 }),
-      new ModuloVigencia(repo, notificador, DURACION_VIGENCIA_MS),
+      new ModuloVigencia(repo, notificador, DURACION_VIGENCIA_MS, SIN_MODELOS, SIN_DESINSTALADOR),
       reloj,
     );
     await assert.rejects(caso.ejecutar(), ModeloEmbeddingIncompatible);

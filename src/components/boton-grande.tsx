@@ -2,7 +2,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { Colores, Espacio, Radio, Tipo, Toque } from '@/constants/theme';
 
-type Variante = 'primario' | 'laguna' | 'contorno';
+type Variante = 'primario' | 'laguna' | 'contorno' | 'peligro';
 
 interface Props {
   etiqueta: string;
@@ -17,6 +17,7 @@ const FONDO: Record<Variante, { normal: string; presionado: string; texto: strin
   primario: { normal: Colores.primario, presionado: Colores.primarioPresionado, texto: Colores.sobrePrimario },
   laguna: { normal: Colores.laguna, presionado: Colores.primarioPresionado, texto: Colores.sobreLaguna },
   contorno: { normal: Colores.superficie, presionado: Colores.pista, texto: Colores.primario },
+  peligro: { normal: Colores.error, presionado: Colores.textoError, texto: Colores.sobreError },
 };
 
 /**

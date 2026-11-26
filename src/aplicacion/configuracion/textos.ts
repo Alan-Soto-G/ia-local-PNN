@@ -32,6 +32,11 @@ export const TEXTOS = {
     'El teléfono no tiene memoria suficiente para el asistente. Cierra otras aplicaciones e inténtalo de nuevo.',
   errorGeneracion: 'No pude terminar la respuesta. Inténtalo de nuevo.',
   respuestaDetenida: 'Respuesta detenida',
+
+  // CU-03 (specs/003-vencer-vigencia/spec.md, ADR-015)
+  vencimientoPregunta: 'Ya no tienes acceso a la información del recorrido. ¿Deseas desinstalar la aplicación?',
+  si: 'Sí',
+  no: 'No',
 } as const;
 
 function hora(fecha: Date): string {

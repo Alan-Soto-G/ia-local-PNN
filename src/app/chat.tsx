@@ -11,6 +11,7 @@ import { PreparandoAsistente } from '@/components/preparando-asistente';
 import { Colores, Espacio, Radio, Tipo, Toque } from '@/constants/theme';
 import type { Mensaje } from '@/dominio/Mensaje';
 import { useChat } from '@/hooks/use-chat';
+import { solicitarRevisionVencimiento } from '@/hooks/use-vigilante-vencimiento';
 import { useModelos } from '@/hooks/use-modelos';
 import { useVigencia } from '@/hooks/use-vigencia';
 
@@ -18,14 +19,16 @@ import { useVigencia } from '@/hooks/use-vigencia';
 export default function Chat() {
   const vigencia = useVigencia();
   const modelos = useModelos();
-  // En 002 la pantalla vuelve a Inicio al perder la vigencia; 003 abre el diálogo de vencimiento.
-  const alPerderVigencia = useCallback(() => router.replace('/'), []);
+  // Al perder la vigencia, el vigilante del layout lleva al diálogo de vencimiento (CU-03).
+  const alPerderVigencia = useCallback(() => solicitarRevisionVencimiento(), []);
   const chat = useChat(alPerderVigencia);
   const lista = useRef<FlatList<Mensaje>>(null);
 
   useEffect(() => {
-    if (!vigencia.leyendo && vigencia.estado !== 'vigente') alPerderVigencia();
-  }, [vigencia.leyendo, vigencia.estado, alPerderVigencia]);
+    if (vigencia.leyendo) return;
+    if (vigencia.estado === 'vencida') solicitarRevisionVencimiento();
+    else if (vigencia.estado === 'sin_datos') router.replace('/');
+  }, [vigencia.leyendo, vigencia.estado]);
 
   const listo = modelos.estado.tipo === 'listo';
 

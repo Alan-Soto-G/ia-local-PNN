@@ -19,8 +19,11 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.POST_NOTIFICATIONS"
-      ]
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.REQUEST_DELETE_PACKAGES",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
+      "package": "co.pnnlosnevados.asistente"
     },
     "web": {
       "output": "server",

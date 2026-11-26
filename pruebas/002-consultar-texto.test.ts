@@ -142,6 +142,8 @@ const notificadorNulo: Notificador = {
   pedirPermiso: async () => 'concedido',
   programarVencimiento: async () => {},
   cancelarVencimiento: async () => {},
+  abiertaDesdeAviso: async () => false,
+  alTocarAviso: () => () => {},
 };
 
 function repoCon(carga: Carga): RepositorioConocimiento {
@@ -181,7 +183,7 @@ function montar(opciones: { ahora?: Date; prepararFalla?: boolean } = {}) {
     motor,
     codificador,
   });
-  const vigencia = new ModuloVigencia(repoCon(CARGA_VIGENTE), notificadorNulo, DURACION_VIGENCIA_MS);
+  const vigencia = new ModuloVigencia(repoCon(CARGA_VIGENTE), notificadorNulo, DURACION_VIGENCIA_MS, { liberar: async () => {} }, { abrirDesinstalacion: async () => {} });
   const buscador = new BuscadorFalso();
   const conversaciones = new ConversacionesFalsas();
   const caso = new ConsultarAsistente(vigencia, gestor, buscador, conversaciones, reloj);
